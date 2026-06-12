@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora estructural — Brazo de TV</title>
+<style>
+  :root {
+    --c-bg: #f4f6f8;
+    --c-panel: #ffffff;
+    --c-border: #d8dee4;
+    --c-text: #1f2933;
+    --c-muted: #6b7785;
+    --c-accent: #1565c0;
+    --c-ok: #2e7d32;
+    --c-bad: #c62828;
+    --c-warn: #ef6c00;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--c-bg);
+    color: var(--c-text);
+    line-height: 1.45;
+  }
+  header {
+    background: #16324f;
+    color: #fff;
+    padding: 14px 24px;
+  }
+  header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+  header p { margin: 2px 0 0; font-size: 0.85rem; opacity: 0.8; }
+
+  main {
+    display: grid;
+    grid-template-columns: 330px 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas: "inputs sketch" "inputs results";
+    gap: 16px;
+    padding: 16px 24px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  #panel-inputs  { grid-area: inputs; }
+  #panel-sketch  { grid-area: sketch; }
+  #panel-results { grid-area: results; }
+  @media (max-width: 900px) {
+    main {
+      grid-template-columns: 1fr;
+      grid-template-areas: "inputs" "sketch" "results";
+    }
+  }
+
+  .panel {
+    background: var(--c-panel);
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .panel h2 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+    color: var(--c-accent);
+    border-bottom: 1px solid var(--c-border);
+    padding-bottom: 6px;
+  }
+  .panel h3 {
+    margin: 16px 0 8px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--c-muted);
+  }
+
+  .field { margin-bottom: 10px; }
+  .field label {
+    display: block;
+    font-size: 0.82rem;
+    color: var(--c-muted);
+    margin-bottom: 3px;
+  }
+  .field input, .field select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    font-size: 0.92rem;
+    background: #fff;
+    color: var(--c-text);
+  }
+  .field input:focus, .field select:focus {
+    outline: 2px solid var(--c-accent);
+    outline-offset: -1px;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #custom-dims {
+    border: 1px dashed var(--c-border);
+    border-radius: 8px;
+    padding: 10px 10px 2px;
+    margin-bottom: 10px;
+    background: #fafbfc;
+  }
+  #input-error {
+    display: none;
+    background: #fdecea;
+    color: var(--c-bad);
+    border: 1px solid #f5c6c3;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    margin-top: 8px;
+  }
+  #input-error.visible { display: block; }
+
+  #sketch-svg { width: 100%; height: auto; display: block; }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .rcard {
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #fafbfc;
+  }
+  .rcard .rtitle { font-size: 0.78rem; color: var(--c-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .rcard .rvalue { font-size: 1.15rem; font-weight: 600; margin: 2px 0; }
+  .rcard .rsub { font-size: 0.8rem; color: var(--c-muted); }
+  .bar {
+    height: 8px;
+    background: #e3e8ee;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .bar > div { height: 100%; border-radius: 4px; transition: width 0.2s; }
+
+  #verdict {
+    display: inline-block;
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding: 6px 18px;
+    border-radius: 999px;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+  #verdict.apto { background: var(--c-ok); }
+  #verdict.noapto { background: var(--c-bad); }
+
+  #suggestion {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #e8f1fb;
+    border: 1px solid #bcd6f0;
+    font-size: 0.9rem;
+  }
+  #suggestion button {
+    margin-left: 8px;
+    padding: 4px 12px;
+    border: none;
+    border-radius: 6px;
+    background: var(--c-accent);
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  #suggestion button:hover { background: #0d4a8f; }
+
+  footer {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 8px 24px 32px;
+    font-size: 0.8rem;
+    color: var(--c-muted);
+  }
+  footer details {
+    background: var(--c-panel);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+  }
+  footer summary { cursor: pointer; font-weight: 600; color: var(--c-text); }
+  footer ul { margin: 8px 0 4px; padding-left: 20px; }
+  .disclaimer {
+    background: #fff8e1;
+    border: 1px solid #f0dfa0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #6d5a13;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Calculadora estructural — Brazo extensible para TV</h1>
+  <p>Voladizo empotrado en pared · flecha, tensión y fuerzas de anclaje</p>
+</header>
+
+<main>
+  <!-- ===================== ENTRADAS ===================== -->
+  <aside class="panel" id="panel-inputs">
+    <h2>Datos de entrada</h2>
+
+    <h3>Cargas</h3>
+    <div class="row2">
+      <div class="field">
+        <label for="in-peso-tv">Peso TV (kg)</label>
+        <input type="number" id="in-peso-tv" value="15" min="0" step="0.5">
+      </div>
+      <div class="field">
+        <label for="in-peso-soporte">Peso soporte (kg)</label>
+        <input type="number" id="in-peso-soporte" value="2" min="0" step="0.5">
+      </div>
+    </div>
+    <div class="field">
+      <label for="in-longitud">Longitud del brazo extendido L (cm)</label>
+      <input type="number" id="in-longitud" value="60" min="1" step="1">
+    </div>
+
+    <h3>Perfil</h3>
+    <div class="field">
+      <label for="in-tipo">Tipo de perfil</label>
+      <select id="in-tipo"></select>
+    </div>
+    <div class="field">
+      <label for="in-dims">Dimensiones (mm)</label>
+      <select id="in-dims"></select>
+    </div>
+    <div id="custom-dims" hidden></div>
+    <div class="field">
+      <label for="in-material">Material</label>
+      <select id="in-material"></select>
+    </div>
+
+    <h3>Criterios</h3>
+    <div class="row2">
+      <div class="field">
+        <label for="in-fs">Factor de seguridad</label>
+        <input type="number" id="in-fs" value="2" min="1" step="0.1">
+      </div>
+      <div class="field">
+        <label for="in-flecha-lim">Límite de flecha</label>
+        <select id="in-flecha-lim">
+          <option value="150">L/150</option>
+          <option value="200" selected>L/200</option>
+          <option value="250">L/250</option>
+          <option value="300">L/300</option>
+          <option value="abs">Absoluto (mm)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" id="field-flecha-abs" hidden>
+      <label for="in-flecha-abs">Flecha máxima absoluta (mm)</label>
+      <input type="number" id="in-flecha-abs" value="3" min="0.1" step="0.5">
+    </div>
+
+    <h3>Placa de anclaje</h3>
+    <div class="row2">
+      <div class="field">
+        <label for="in-sep-pernos">Separación vertical entre filas s (mm)</label>
+        <input type="number" id="in-sep-pernos" value="100" min="10" step="5">
+      </div>
+      <div class="field">
+        <label for="in-n-pernos">Pernos por fila (2 filas)</label>
+        <input type="number" id="in-n-pernos" value="2" min="1" step="1">
+      </div>
+    </div>
+
+    <div id="input-error"></div>
+  </aside>
+
+  <!-- ===================== SKETCH ===================== -->
+  <section class="panel" id="panel-sketch">
+    <h2>Esquema de la estructura</h2>
+    <svg id="sketch-svg" viewBox="0 0 800 430" xmlns="http://www.w3.org/2000/svg"></svg>
+  </section>
+
+  <!-- ===================== RESULTADOS ===================== -->
+  <section class="panel" id="panel-results">
+    <h2>Resultados</h2>
+    <div id="verdict"></div>
+    <div class="results-grid" id="results-grid"></div>
+    <div id="suggestion"></div>
+  </section>
+</main>
+
+<footer>
+  <details>
+    <summary>Hipótesis de cálculo</summary>
+    <ul>
+      <li>Modelo de viga en voladizo perfectamente empotrada en la pared (caso más desfavorable: brazo totalmente extendido y horizontal).</li>
+      <li>Carga puntual P = (peso TV + soporte)·g aplicada en el extremo libre, más peso propio del perfil como carga distribuida q = A·ρ·g.</li>
+      <li>Flecha en punta: δ = P·L³/(3EI) + q·L⁴/(8EI). Tensión máxima en el empotramiento: σ = M/W con M = P·L + q·L²/2.</li>
+      <li>Comprobaciones: σ ≤ f<sub>y</sub>/FS y δ ≤ límite seleccionado.</li>
+      <li>Anclaje: placa con 2 filas de pernos separadas verticalmente s. Tracción por perno de la fila superior T = M/(s·n); cortante repartido entre todos los pernos V<sub>p</sub> = V/(2n).</li>
+      <li>Perfiles orientados con su dimensión mayor (canto) en vertical. Propiedades de sección sin radios de acuerdo (valores ligeramente conservadores en peso, optimistas en inercia ~5–10%).</li>
+    </ul>
+  </details>
+  <div class="disclaimer">
+    <strong>Aviso:</strong> herramienta orientativa y educativa; <strong>no sustituye el cálculo de un técnico competente</strong> ni la normativa aplicable (CTE / Eurocódigo).
+    No considera cargas dinámicas (tirones, impactos, sismo), fatiga, pandeo lateral-torsional ni la resistencia de la soldadura o unión brazo–placa.
+    El cálculo de pernos es simplificado: la capacidad real del anclaje depende del material del muro (hormigón, ladrillo hueco/macizo, cartón-yeso) — consulta las fichas técnicas del fabricante del taco y la interacción tracción-cortante.
+    La pletina y el angular en voladizo son sensibles a torsión y vuelco lateral no modelados; es preferible usar tubos. Verifica el peso real de la TV + soporte con margen.
+  </div>
+</footer>
+
+<script>
+"use strict";
+
+/* =====================================================================
+ * 0. CONSTANTES Y AYUDAS
+ * Unidades internas: N, mm, MPa (N/mm²). Densidad en kg/m³ se convierte
+ * a peso propio q en N/mm.
+ * =================================================================== */
+const G = 9.81; // m/s²
+
+/* =====================================================================
+ * 1. MATERIALES
+ * E [MPa], fy límite elástico [MPa], densidad [kg/m³]
+ * =================================================================== */
+const MATERIALS = {
+  S235:    { nombre: "Acero S235",       E: 210000, fy: 235, densidad: 7850 },
+  S275:    { nombre: "Acero S275",       E: 210000, fy: 275, densidad: 7850 },
+  AL6061:  { nombre: "Aluminio 6061-T6", E: 68900,  fy: 276, densidad: 2700 },
+  AL6063:  { nombre: "Aluminio 6063-T5", E: 68900,  fy: 145, densidad: 2700 },
+  INOX304: { nombre: "Inox 304",         E: 193000, fy: 215, densidad: 7900 },
+};
+
+/* =====================================================================
+ * 2. TIPOS DE PERFIL
+ * props(dims) devuelve { A [mm²], I [mm⁴], W [mm³], hDraw [mm] } para
+ * flexión alrededor del eje horizontal (carga vertical). Los perfiles se
+ * orientan con el canto (dimensión mayor) en vertical.
+ * Comprobación manual (tubo rect 40x20x2, h=40 b=20 t=2):
+ *   A = 40·20 − 36·16 = 224 mm²
+ *   I = (20·40³ − 16·36³)/12 = 44 459 mm⁴  (tablas con radios: ≈ 4.05·10⁴)
+ *   W = I/20 = 2 223 mm³
+ * =================================================================== */
+const PROFILE_TYPES = {
+  rect: {
+    nombre: "Tubo rectangular",
+    params: [
+      { key: "h", label: "Canto h (vertical)" },
+      { key: "b", label: "Ancho b" },
+      { key: "t", label: "Espesor t" },
+    ],
+    valida(d) { return d.t < Math.min(d.b, d.h) / 2; },
+    props(d) {
+      const bi = d.b - 2 * d.t, hi = d.h - 2 * d.t;
+      const A = d.b * d.h - bi * hi;
+      const I = (d.b * d.h ** 3 - bi * hi ** 3) / 12;
+      return { A, I, W: (2 * I) / d.h, hDraw: d.h };
+    },
+  },
+  cuadrado: {
+    nombre: "Tubo cuadrado",
+    params: [
+      { key: "a", label: "Lado a" },
+      { key: "t", label: "Espesor t" },
+    ],
+    valida(d) { return d.t < d.a / 2; },
+    props(d) {
+      return PROFILE_TYPES.rect.props({ b: d.a, h: d.a, t: d.t });
+    },
+  },
+  redondo: {
+    nombre: "Tubo redondo",
+    params: [
+      { key: "D", label: "Diámetro exterior D" },
+      { key: "t", label: "Espesor t" },
+    ],
+    valida(d) { return d.t < d.D / 2; },
+    props(d) {
+      const di = d.D - 2 * d.t;
+      const A = Math.PI * (d.D ** 2 - di ** 2) / 4;
+      const I = Math.PI * (d.D ** 4 - di ** 4) / 64;
+      return { A, I, W: (2 * I) / d.D, hDraw: d.D };
+    },
+  },
+  pletina: {
+    nombre: "Pletina (canto vertical)",
+    params: [
+      { key: "h", label: "Canto h (vertical)" },
+      { key: "b", label: "Espesor b" },
+    ],
+    valida() { return true; },
+    props(d) {
+      const A = d.b * d.h;
+      const I = d.b * d.h ** 3 / 12;
+      return { A, I, W: d.b * d.h ** 2 / 6, hDraw: d.h };
+    },
+  },
+  angular: {
+    nombre: "Angular en L",
+    params: [
+      { key: "h", label: "Ala vertical h" },
+      { key: "b", label: "Ala horizontal b" },
+      { key: "t", label: "Espesor t" },
+    ],
+    valida(d) { return d.t < Math.min(d.b, d.h); },
+    props(d) {
+      // Dos rectángulos: ala vertical t×h (completa) + ala horizontal (b−t)×t abajo.
+      const A1 = d.t * d.h, y1 = d.h / 2;
+      const A2 = (d.b - d.t) * d.t, y2 = d.t / 2;
+      const A = A1 + A2;
+      const yc = (A1 * y1 + A2 * y2) / A;
+      const I = d.t * d.h ** 3 / 12 + A1 * (y1 - yc) ** 2
+              + (d.b - d.t) * d.t ** 3 / 12 + A2 * (yc - y2) ** 2;
+      const c = Math.max(yc, d.h - yc);
+      return { A, I, W: I / c, hDraw: d.h };
+    },
+  },
+};
+
+/* =====================================================================
+ * 3. CATÁLOGO (medidas comerciales habituales, mm)
+ * =================================================================== */
+const CATALOG = {
+  rect: [
+    { label: "30×20×2", dims: { h: 30, b: 20, t: 2 } },
+    { label: "40×20×2", dims: { h: 40, b: 20, t: 2 } },
+    { label: "40×30×2", dims: { h: 40, b: 30, t: 2 } },
+    { label: "50×30×2", dims: { h: 50, b: 30, t: 2 } },
+    { label: "60×40×2", dims: { h: 60, b: 40, t: 2 } },
+    { label: "60×40×3", dims: { h: 60, b: 40, t: 3 } },
+    { label: "80×40×3", dims: { h: 80, b: 40, t: 3 } },
+  ],
+  cuadrado: [
+    { label: "20×20×2", dims: { a: 20, t: 2 } },
+    { label: "25×25×2", dims: { a: 25, t: 2 } },
+    { label: "30×30×2", dims: { a: 30, t: 2 } },
+    { label: "40×40×2", dims: { a: 40, t: 2 } },
+    { label: "40×40×3", dims: { a: 40, t: 3 } },
+    { label: "50×50×3", dims: { a: 50, t: 3 } },
+  ],
+  redondo: [
+    { label: "Ø20×2", dims: { D: 20, t: 2 } },
+    { label: "Ø25×2", dims: { D: 25, t: 2 } },
+    { label: "Ø30×2", dims: { D: 30, t: 2 } },
+    { label: "Ø40×2", dims: { D: 40, t: 2 } },
+    { label: "Ø50×3", dims: { D: 50, t: 3 } },
+  ],
+  pletina: [
+    { label: "30×4", dims: { h: 30, b: 4 } },
+    { label: "40×4", dims: { h: 40, b: 4 } },
+    { label: "40×6", dims: { h: 40, b: 6 } },
+    { label: "50×6", dims: { h: 50, b: 6 } },
+    { label: "50×8", dims: { h: 50, b: 8 } },
+    { label: "60×8", dims: { h: 60, b: 8 } },
+  ],
+  angular: [
+    { label: "30×30×3", dims: { h: 30, b: 30, t: 3 } },
+    { label: "40×40×4", dims: { h: 40, b: 40, t: 4 } },
+    { label: "50×50×5", dims: { h: 50, b: 50, t: 5 } },
+    { label: "60×60×6", dims: { h: 60, b: 60, t: 6 } },
+  ],
+};
+
+/* =====================================================================
+ * 4. MOTOR DE CÁLCULO (funciones puras, sin DOM)
+ *
+ * El modelo usa un array de segmentos para poder ampliarse en el futuro
+ * a brazos multi-segmento con articulaciones. Tipos de unión previstos:
+ *   "empotramiento" (v1, implementado) · "rotula" · "bisagra"
+ * En v1 hay un único segmento empotrado en la pared.
+ * =================================================================== */
+
+/** Construye el modelo estructural a partir de las entradas de la UI. */
+function buildModel(inputs) {
+  const material = MATERIALS[inputs.material];
+  const props = PROFILE_TYPES[inputs.tipo].props(inputs.dims);
+  return {
+    segments: [{
+      L: inputs.L,            // mm
+      profile: props,         // { A, I, W, hDraw }
+      material,               // { E, fy, densidad }
+      joint: "empotramiento", // unión con la pared
+    }],
+    tipLoad: (inputs.pesoTV + inputs.pesoSoporte) * G, // N
+  };
+}
+
+/** Analiza el modelo: flecha, tensión y reacciones en el empotramiento. */
+function analyze(model, criteria) {
+  // v1: un solo segmento; el bucle deja preparada la extensión multi-segmento.
+  const seg = model.segments[0];
+  const { L, profile, material } = seg;
+  const P = model.tipLoad;
+  const EI = material.E * profile.I;
+
+  // Peso propio: A [mm²] → m², ×ρ [kg/m³] ×g → N/m → N/mm
+  const q = profile.A * 1e-6 * material.densidad * G / 1000;
+
+  const M = P * L + q * L ** 2 / 2;                       // N·mm
+  const V = P + q * L;                                    // N
+  const delta = P * L ** 3 / (3 * EI) + q * L ** 4 / (8 * EI); // mm
+  const sigma = M / profile.W;                            // MPa
+  const sigmaAdm = material.fy / criteria.FS;             // MPa
+  const deltaLim = criteria.deltaLimAbs != null
+    ? criteria.deltaLimAbs
+    : L / criteria.deltaLimRatio;
+
+  const utilStress = sigma / sigmaAdm;
+  const utilDefl = delta / deltaLim;
+  return {
+    q, M, V, delta, sigma, sigmaAdm, deltaLim, utilStress, utilDefl,
+    pesoPropio: profile.A * 1e-6 * material.densidad, // kg/m
+    apto: utilStress <= 1 && utilDefl <= 1,
+  };
+}
+
+/**
+ * Fuerzas en los pernos de la placa de anclaje.
+ * Modelo simplificado: 2 filas separadas verticalmente s; el momento lo
+ * resiste el par tracción (fila superior) / compresión (fila inferior),
+ * y el cortante se reparte entre todos los pernos.
+ */
+function anchorForces({ M, V }, { s, n }) {
+  return {
+    tensionPerno: M / (s * n),  // N
+    cortantePerno: V / (2 * n), // N
+  };
+}
+
+/**
+ * Recorre todo el catálogo con el material y criterios actuales y devuelve
+ * el perfil más ligero (menor área) que cumple flecha y tensión.
+ */
+function suggestProfile(inputs, criteria) {
+  let best = null;
+  for (const [tipo, entries] of Object.entries(CATALOG)) {
+    for (const entry of entries) {
+      const model = buildModel({ ...inputs, tipo, dims: entry.dims });
+      const res = analyze(model, criteria);
+      if (res.apto && (!best || model.segments[0].profile.A < best.A)) {
+        best = { tipo, entry, A: model.segments[0].profile.A, res };
+      }
+    }
+  }
+  return best;
+}
+
+/* =====================================================================
+ * 5. SKETCH (SVG)
+ * =================================================================== */
+const Sketch = {
+  WALL_X: 120,
+  ARM_Y: 200,
+  MAX_ARM_PX: 540,
+
+  /** Símbolo de unión. v1: solo "empotramiento"; "rotula"/"bisagra" previstos. */
+  drawJoint(type, x, y1, y2) {
+    switch (type) {
+      case "empotramiento": {
+        let s = `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#37474f" stroke-width="4"/>`;
+        for (let y = y1; y < y2; y += 16) {
+          s += `<line x1="${x}" y1="${y + 16}" x2="${x - 14}" y2="${y}" stroke="#78909c" stroke-width="2"/>`;
+        }
+        return s;
+      }
+      case "rotula": // previsto: círculo articulado
+        return `<circle cx="${x}" cy="${(y1 + y2) / 2}" r="7" fill="#fff" stroke="#37474f" stroke-width="2"/>`;
+      case "bisagra": // previsto: círculo con pasador
+        return `<circle cx="${x}" cy="${(y1 + y2) / 2}" r="7" fill="#37474f"/>`;
+      default:
+        return "";
+    }
+  },
+
+  render(svg, inputs, model, res, bolts) {
+    const seg = model.segments[0];
+    const L = seg.L;
+    const scale = this.MAX_ARM_PX / L;          // px por mm
+    const x0 = this.WALL_X, y0 = this.ARM_Y;
+    const xTip = x0 + L * scale;
+    const armColor = res.apto ? "var(--c-ok)" : "var(--c-bad)";
+    const armH = Math.max(6, Math.min(26, seg.profile.hDraw * scale));
+
+    let s = "";
+
+    // Pared + empotramiento
+    s += `<rect x="${x0 - 60}" y="40" width="60" height="350" fill="#eceff1"/>`;
+    s += this.drawJoint(seg.joint, x0, 40, 390);
+
+    // Placa de anclaje con pernos (separación s a escala, limitada al alto de la placa)
+    const sPx = Math.min(inputs.anclaje.s * scale, 220);
+    const plateH = sPx + 50;
+    s += `<rect x="${x0}" y="${y0 - plateH / 2}" width="12" height="${plateH}" rx="2" fill="#90a4ae" stroke="#546e7a"/>`;
+    for (const dy of [-sPx / 2, sPx / 2]) {
+      s += `<circle cx="${x0 + 6}" cy="${y0 + dy}" r="4" fill="#37474f"/>`;
+    }
+    s += `<text x="${x0 + 22}" y="${y0 - plateH / 2 - 6}" font-size="12" fill="#546e7a">${inputs.anclaje.n}×2 pernos · s=${inputs.anclaje.s} mm</text>`;
+
+    // Brazo
+    s += `<rect x="${x0 + 12}" y="${y0 - armH / 2}" width="${xTip - x0 - 12}" height="${armH}" rx="2" fill="${armColor}"/>`;
+
+    // Deformada exagerada: elástica y(x) = Px²(3L−x)/6EI + qx²(6L²−4Lx+x²)/24EI
+    const EI = seg.material.E * seg.profile.I;
+    const P = model.tipLoad, q = res.q;
+    if (res.delta > 0) {
+      const exag = 60 / res.delta; // la punta baja 60 px en pantalla
+      let path = `M ${x0 + 12} ${y0}`;
+      for (let i = 1; i <= 24; i++) {
+        const x = (L * i) / 24;
+        const y = P * x * x * (3 * L - x) / (6 * EI)
+                + q * x * x * (6 * L * L - 4 * L * x + x * x) / (24 * EI);
+        path += ` L ${(x0 + 12 + x * scale).toFixed(1)} ${(y0 + y * exag).toFixed(1)}`;
+      }
+      s += `<path d="${path}" fill="none" stroke="#7b1fa2" stroke-width="2" stroke-dasharray="6 4" opacity="0.8"/>`;
+      s += `<text x="${x0 + 30}" y="${y0 + 85}" font-size="12" fill="#7b1fa2">deformada ×${Math.round(exag)} (exagerada)</text>`;
+    }
+
+    // TV en la punta + flecha de carga
+    const tvW = 110, tvH = 64;
+    s += `<line x1="${xTip}" y1="${y0}" x2="${xTip}" y2="${y0 + 26}" stroke="#37474f" stroke-width="4"/>`;
+    s += `<rect x="${xTip - tvW / 2}" y="${y0 + 26}" width="${tvW}" height="${tvH}" rx="4" fill="#263238"/>`;
+    s += `<rect x="${xTip - tvW / 2 + 5}" y="${y0 + 31}" width="${tvW - 10}" height="${tvH - 10}" rx="2" fill="#4fc3f7" opacity="0.7"/>`;
+    const yArr = y0 + 26 + tvH + 8;
+    s += `<line x1="${xTip}" y1="${yArr}" x2="${xTip}" y2="${yArr + 40}" stroke="var(--c-bad)" stroke-width="3"/>`;
+    s += `<polygon points="${xTip - 6},${yArr + 38} ${xTip + 6},${yArr + 38} ${xTip},${yArr + 50}" fill="var(--c-bad)"/>`;
+    s += `<text x="${xTip + 12}" y="${yArr + 36}" font-size="13" fill="var(--c-bad)">P = ${(inputs.pesoTV + inputs.pesoSoporte).toFixed(1)} kg</text>`;
+
+    // Cota de longitud
+    const yDim = 90;
+    s += `<line x1="${x0 + 12}" y1="${yDim}" x2="${xTip}" y2="${yDim}" stroke="#546e7a" stroke-width="1"/>`;
+    s += `<line x1="${x0 + 12}" y1="${yDim - 6}" x2="${x0 + 12}" y2="${yDim + 6}" stroke="#546e7a" stroke-width="1"/>`;
+    s += `<line x1="${xTip}" y1="${yDim - 6}" x2="${xTip}" y2="${yDim + 6}" stroke="#546e7a" stroke-width="1"/>`;
+    s += `<text x="${(x0 + 12 + xTip) / 2}" y="${yDim - 8}" font-size="13" fill="#546e7a" text-anchor="middle">L = ${(L / 10).toFixed(0)} cm</text>`;
+
+    svg.innerHTML = s;
+  },
+};
+
+/* =====================================================================
+ * 6. UI (solo en navegador)
+ * =================================================================== */
+if (typeof document !== "undefined") {
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    pesoTV: $("in-peso-tv"), pesoSoporte: $("in-peso-soporte"), L: $("in-longitud"),
+    tipo: $("in-tipo"), dims: $("in-dims"), customDims: $("custom-dims"),
+    material: $("in-material"), fs: $("in-fs"),
+    flechaLim: $("in-flecha-lim"), flechaAbs: $("in-flecha-abs"), fieldFlechaAbs: $("field-flecha-abs"),
+    sepPernos: $("in-sep-pernos"), nPernos: $("in-n-pernos"),
+    error: $("input-error"), svg: $("sketch-svg"),
+    verdict: $("verdict"), grid: $("results-grid"), suggestion: $("suggestion"),
+  };
+
+  function fillSelect(sel, options) {
+    sel.innerHTML = options.map(o => `<option value="${o.value}">${o.label}</option>`).join("");
+  }
+
+  function populateTipos() {
+    fillSelect(els.tipo, Object.entries(PROFILE_TYPES).map(([k, v]) => ({ value: k, label: v.nombre })));
+  }
+  function populateMateriales() {
+    fillSelect(els.material, Object.entries(MATERIALS).map(([k, v]) => ({ value: k, label: v.nombre })));
+  }
+  function populateDims(tipo, keepCustom) {
+    const opts = CATALOG[tipo].map((e, i) => ({ value: String(i), label: e.label }));
+    opts.push({ value: "custom", label: "Personalizado…" });
+    fillSelect(els.dims, opts);
+    if (keepCustom) els.dims.value = "custom";
+    renderCustomDims(tipo);
+  }
+  function renderCustomDims(tipo) {
+    const custom = els.dims.value === "custom";
+    els.customDims.hidden = !custom;
+    if (!custom) { els.customDims.innerHTML = ""; return; }
+    const base = CATALOG[tipo][0].dims;
+    els.customDims.innerHTML = PROFILE_TYPES[tipo].params.map(p => `
+      <div class="field">
+        <label for="dim-${p.key}">${p.label} (mm)</label>
+        <input type="number" id="dim-${p.key}" value="${base[p.key]}" min="0.5" step="0.5">
+      </div>`).join("");
+    for (const p of PROFILE_TYPES[tipo].params) {
+      $(`dim-${p.key}`).addEventListener("input", recalc);
+    }
+  }
+
+  function getInputs() {
+    const tipo = els.tipo.value;
+    let dims;
+    if (els.dims.value === "custom") {
+      dims = {};
+      for (const p of PROFILE_TYPES[tipo].params) dims[p.key] = parseFloat($(`dim-${p.key}`).value);
+    } else {
+      dims = { ...CATALOG[tipo][parseInt(els.dims.value, 10)].dims };
+    }
+    return {
+      pesoTV: parseFloat(els.pesoTV.value),
+      pesoSoporte: parseFloat(els.pesoSoporte.value),
+      L: parseFloat(els.L.value) * 10, // cm → mm
+      tipo, dims,
+      material: els.material.value,
+      anclaje: { s: parseFloat(els.sepPernos.value), n: parseInt(els.nPernos.value, 10) },
+    };
+  }
+  function getCriteria(L) {
+    const FS = parseFloat(els.fs.value);
+    const abs = els.flechaLim.value === "abs";
+    els.fieldFlechaAbs.hidden = !abs;
+    return {
+      FS,
+      deltaLimRatio: abs ? null : parseFloat(els.flechaLim.value),
+      deltaLimAbs: abs ? parseFloat(els.flechaAbs.value) : null,
+    };
+  }
+
+  function validate(inputs, criteria) {
+    const errs = [];
+    if (!(inputs.pesoTV >= 0)) errs.push("El peso de la TV debe ser ≥ 0.");
+    if (!(inputs.pesoTV + inputs.pesoSoporte > 0)) errs.push("La carga total debe ser positiva.");
+    if (!(inputs.L > 0)) errs.push("La longitud del brazo debe ser positiva.");
+    for (const [k, v] of Object.entries(inputs.dims)) {
+      if (!(v > 0)) errs.push(`La dimensión "${k}" debe ser positiva.`);
+    }
+    if (errs.length === 0 && !PROFILE_TYPES[inputs.tipo].valida(inputs.dims)) {
+      errs.push("Dimensiones incoherentes: el espesor es demasiado grande para el perfil.");
+    }
+    if (!(criteria.FS >= 1)) errs.push("El factor de seguridad debe ser ≥ 1.");
+    if (criteria.deltaLimAbs != null && !(criteria.deltaLimAbs > 0)) errs.push("El límite de flecha absoluto debe ser positivo.");
+    if (!(inputs.anclaje.s > 0)) errs.push("La separación entre filas de pernos debe ser positiva.");
+    if (!(inputs.anclaje.n >= 1)) errs.push("Debe haber al menos 1 perno por fila.");
+    return errs;
+  }
+
+  const fmt = (v, dec = 1) => v.toLocaleString("es-ES", { maximumFractionDigits: dec, minimumFractionDigits: 0 });
+
+  function rcard(title, value, sub, util) {
+    const color = util == null ? "" : util <= 0.7 ? "var(--c-ok)" : util <= 1 ? "var(--c-warn)" : "var(--c-bad)";
+    const bar = util == null ? "" :
+      `<div class="bar"><div style="width:${Math.min(100, util * 100).toFixed(0)}%;background:${color}"></div></div>`;
+    return `<div class="rcard"><div class="rtitle">${title}</div><div class="rvalue">${value}</div><div class="rsub">${sub}</div>${bar}</div>`;
+  }
+
+  function renderResults(inputs, res, bolts, best) {
+    els.verdict.className = res.apto ? "apto" : "noapto";
+    els.verdict.textContent = res.apto ? "✓ APTO" : "✗ NO APTO";
+
+    els.grid.innerHTML =
+      rcard("Flecha en punta",
+        `${fmt(res.delta, 2)} mm`,
+        `límite ${fmt(res.deltaLim, 2)} mm · utilización ${fmt(res.utilDefl * 100, 0)} %`,
+        res.utilDefl) +
+      rcard("Tensión máxima",
+        `${fmt(res.sigma, 1)} MPa`,
+        `admisible ${fmt(res.sigmaAdm, 1)} MPa · utilización ${fmt(res.utilStress * 100, 0)} %`,
+        res.utilStress) +
+      rcard("Reacciones en el empotramiento",
+        `M = ${fmt(res.M / 1000, 1)} N·m`,
+        `cortante V = ${fmt(res.V, 1)} N`) +
+      rcard("Fuerzas por perno",
+        `Tracción ${fmt(bolts.tensionPerno, 0)} N`,
+        `≈ ${fmt(bolts.tensionPerno / G, 1)} kgf de arranque · cortante ${fmt(bolts.cortantePerno, 0)} N`) +
+      rcard("Peso propio del perfil",
+        `${fmt(res.pesoPropio, 2)} kg/m`,
+        `carga distribuida q = ${fmt(res.q * 1000, 2)} N/m`);
+
+    if (best) {
+      const mismo = best.tipo === inputs.tipo && els.dims.value !== "custom" &&
+        CATALOG[best.tipo][parseInt(els.dims.value, 10)] === best.entry;
+      els.suggestion.innerHTML =
+        `<strong>Perfil óptimo del catálogo:</strong> ${PROFILE_TYPES[best.tipo].nombre} ${best.entry.label} ` +
+        `(${fmt(best.res.pesoPropio, 2)} kg/m · utilización ${fmt(Math.max(best.res.utilStress, best.res.utilDefl) * 100, 0)} %)` +
+        (mismo ? " — es el seleccionado." : ` <button id="btn-apply">Aplicar</button>`);
+      const btn = $("btn-apply");
+      if (btn) btn.addEventListener("click", () => {
+        els.tipo.value = best.tipo;
+        populateDims(best.tipo, false);
+        els.dims.value = String(CATALOG[best.tipo].indexOf(best.entry));
+        renderCustomDims(best.tipo);
+        recalc();
+      });
+    } else {
+      els.suggestion.innerHTML =
+        "<strong>Ningún perfil del catálogo cumple</strong> con estos criterios. " +
+        "Reduce la longitud o el peso, relaja el límite de flecha o usa un perfil personalizado mayor.";
+    }
+  }
+
+  function recalc() {
+    const inputs = getInputs();
+    const criteria = getCriteria(inputs.L);
+    const errs = validate(inputs, criteria);
+    els.error.classList.toggle("visible", errs.length > 0);
+    if (errs.length > 0) {
+      els.error.innerHTML = errs.join("<br>");
+      return;
+    }
+    const model = buildModel(inputs);
+    const res = analyze(model, criteria);
+    const bolts = anchorForces(res, inputs.anclaje);
+    const best = suggestProfile(inputs, criteria);
+    renderResults(inputs, res, bolts, best);
+    Sketch.render(els.svg, inputs, model, res, bolts);
+  }
+
+  // Inicialización
+  populateTipos();
+  populateMateriales();
+  els.tipo.value = "rect";
+  populateDims("rect", false);
+  els.dims.value = "1"; // 40×20×2 por defecto
+
+  els.tipo.addEventListener("change", () => { populateDims(els.tipo.value, false); recalc(); });
+  els.dims.addEventListener("change", () => { renderCustomDims(els.tipo.value); recalc(); });
+  for (const el of [els.pesoTV, els.pesoSoporte, els.L, els.material, els.fs,
+                    els.flechaLim, els.flechaAbs, els.sepPernos, els.nPernos]) {
+    el.addEventListener("input", recalc);
+    el.addEventListener("change", recalc);
+  }
+  recalc();
+}
+
+/* Exportación para pruebas en Node (no afecta al navegador). */
+if (typeof module !== "undefined") {
+  module.exports = { MATERIALS, PROFILE_TYPES, CATALOG, buildModel, analyze, anchorForces, suggestProfile };
+}
+</script>
+</body>
+</html>
