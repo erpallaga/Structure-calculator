@@ -34,12 +34,12 @@
 
   main {
     display: grid;
-    grid-template-columns: 330px 1fr;
+    grid-template-columns: 360px 1fr;
     grid-template-rows: auto auto;
     grid-template-areas: "inputs sketch" "inputs results";
     gap: 16px;
     padding: 16px 24px;
-    max-width: 1280px;
+    max-width: 1320px;
     margin: 0 auto;
   }
   #panel-inputs  { grid-area: inputs; }
@@ -94,13 +94,64 @@
     outline-offset: -1px;
   }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  #custom-dims {
-    border: 1px dashed var(--c-border);
+
+  /* Tramos */
+  .seg-card {
+    border: 1px solid var(--c-border);
     border-radius: 8px;
-    padding: 10px 10px 2px;
+    padding: 10px 10px 4px;
     margin-bottom: 10px;
     background: #fafbfc;
   }
+  .seg-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .seg-head strong { font-size: 0.88rem; color: var(--c-accent); }
+  .seg-head button {
+    border: none;
+    background: #fdecea;
+    color: var(--c-bad);
+    border-radius: 6px;
+    padding: 2px 9px;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+  .seg-body {
+    display: grid;
+    grid-template-columns: 1fr 96px;
+    gap: 8px;
+    align-items: start;
+  }
+  .section-preview {
+    border: 1px dashed var(--c-border);
+    border-radius: 6px;
+    background: #fff;
+    text-align: center;
+    padding: 4px 2px 2px;
+  }
+  .section-preview .cap { font-size: 0.68rem; color: var(--c-muted); }
+  .custom-dims {
+    border: 1px dashed var(--c-border);
+    border-radius: 8px;
+    padding: 8px 8px 0;
+    margin: 0 0 8px;
+    background: #fff;
+  }
+  #btn-add-seg {
+    width: 100%;
+    padding: 7px;
+    border: 1px dashed var(--c-accent);
+    background: #e8f1fb;
+    color: var(--c-accent);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  #btn-add-seg:disabled { opacity: 0.45; cursor: not-allowed; }
+
   #input-error {
     display: none;
     background: #fdecea;
@@ -114,6 +165,19 @@
   #input-error.visible { display: block; }
 
   #sketch-svg { width: 100%; height: auto; display: block; }
+  #joint-legend {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    border-top: 1px solid var(--c-border);
+    font-size: 0.8rem;
+    color: var(--c-muted);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 4px 16px;
+  }
+  #joint-legend li { display: flex; align-items: center; gap: 8px; }
+  #joint-legend svg { flex: 0 0 auto; }
 
   .results-grid {
     display: grid;
@@ -149,6 +213,7 @@
   }
   #verdict.apto { background: var(--c-ok); }
   #verdict.noapto { background: var(--c-bad); }
+  #verdict.inestable { background: #6a1b9a; }
 
   #suggestion {
     margin-top: 14px;
@@ -171,7 +236,7 @@
   #suggestion button:hover { background: #0d4a8f; }
 
   footer {
-    max-width: 1280px;
+    max-width: 1320px;
     margin: 0 auto;
     padding: 8px 24px 32px;
     font-size: 0.8rem;
@@ -199,7 +264,7 @@
 
 <header>
   <h1>Calculadora estructural — Brazo extensible para TV</h1>
-  <p>Voladizo empotrado en pared · flecha, tensión y fuerzas de anclaje</p>
+  <p>Voladizo multi-tramo anclado a pared · flecha, tensión y fuerzas de anclaje</p>
 </header>
 
 <main>
@@ -218,24 +283,14 @@
         <input type="number" id="in-peso-soporte" value="2" min="0" step="0.5">
       </div>
     </div>
-    <div class="field">
-      <label for="in-longitud">Longitud del brazo extendido L (cm)</label>
-      <input type="number" id="in-longitud" value="60" min="1" step="1">
-    </div>
 
-    <h3>Perfil</h3>
+    <h3>Tramos del brazo (extendido)</h3>
+    <div id="segments"></div>
+    <button id="btn-add-seg" type="button">+ Añadir tramo</button>
+
+    <h3>Material (toda la estructura)</h3>
     <div class="field">
-      <label for="in-tipo">Tipo de perfil</label>
-      <select id="in-tipo"></select>
-    </div>
-    <div class="field">
-      <label for="in-dims">Dimensiones (mm)</label>
-      <select id="in-dims"></select>
-    </div>
-    <div id="custom-dims" hidden></div>
-    <div class="field">
-      <label for="in-material">Material</label>
-      <select id="in-material"></select>
+      <select id="in-material" aria-label="Material"></select>
     </div>
 
     <h3>Criterios</h3>
@@ -279,6 +334,7 @@
   <section class="panel" id="panel-sketch">
     <h2>Esquema de la estructura</h2>
     <svg id="sketch-svg" viewBox="0 0 800 430" xmlns="http://www.w3.org/2000/svg"></svg>
+    <ul id="joint-legend"></ul>
   </section>
 
   <!-- ===================== RESULTADOS ===================== -->
@@ -294,17 +350,18 @@
   <details>
     <summary>Hipótesis de cálculo</summary>
     <ul>
-      <li>Modelo de viga en voladizo perfectamente empotrada en la pared (caso más desfavorable: brazo totalmente extendido y horizontal).</li>
-      <li>Carga puntual P = (peso TV + soporte)·g aplicada en el extremo libre, más peso propio del perfil como carga distribuida q = A·ρ·g.</li>
-      <li>Flecha en punta: δ = P·L³/(3EI) + q·L⁴/(8EI). Tensión máxima en el empotramiento: σ = M/W con M = P·L + q·L²/2.</li>
-      <li>Comprobaciones: σ ≤ f<sub>y</sub>/FS y δ ≤ límite seleccionado.</li>
-      <li>Anclaje: placa con 2 filas de pernos separadas verticalmente s. Tracción por perno de la fila superior T = M/(s·n); cortante repartido entre todos los pernos V<sub>p</sub> = V/(2n).</li>
-      <li>Perfiles orientados con su dimensión mayor (canto) en vertical. Propiedades de sección sin radios de acuerdo (valores ligeramente conservadores en peso, optimistas en inercia ~5–10%).</li>
+      <li>Modelo de voladizo multi-tramo en el caso más desfavorable: brazo totalmente extendido y horizontal, empotrado en la pared.</li>
+      <li>Carga puntual P = (peso TV + soporte)·g en el extremo libre, más el peso propio de cada tramo como carga distribuida q<sub>i</sub> = A<sub>i</sub>·ρ·g.</li>
+      <li>La flecha se obtiene integrando numéricamente la curvatura κ(x) = M(x)/(E·I(x)) a lo largo del brazo (voladizo de sección escalonada); la tensión se comprueba al inicio de cada tramo, donde su momento es máximo: σ<sub>i</sub> = M(x<sub>i</sub>)/W<sub>i</sub>.</li>
+      <li>Comprobaciones: máx σ<sub>i</sub> ≤ f<sub>y</sub>/FS y δ ≤ límite (referido a la longitud total extendida).</li>
+      <li><strong>Conexiones:</strong> el <em>pivote de eje vertical</em> (codo típico de brazo articulado) gira en planta pero transmite íntegramente la flexión vertical, por lo que se trata como rígido frente a cargas gravitatorias. Una <em>bisagra de eje horizontal</em> o una <em>rótula esférica</em> liberan el giro vertical y convierten el voladizo en un <strong>mecanismo inestable</strong>: la app lo señala y no es apto sin un tirante u otro apoyo.</li>
+      <li>Anclaje: placa con 2 filas de pernos separadas verticalmente s. Tracción por perno de la fila superior T = M/(s·n); cortante repartido V<sub>p</sub> = V/(2n).</li>
+      <li>Perfiles orientados con su dimensión mayor (canto) en vertical. Propiedades de sección sin radios de acuerdo (≈5–10 % optimistas en inercia).</li>
     </ul>
   </details>
   <div class="disclaimer">
     <strong>Aviso:</strong> herramienta orientativa y educativa; <strong>no sustituye el cálculo de un técnico competente</strong> ni la normativa aplicable (CTE / Eurocódigo).
-    No considera cargas dinámicas (tirones, impactos, sismo), fatiga, pandeo lateral-torsional ni la resistencia de la soldadura o unión brazo–placa.
+    No considera cargas dinámicas (tirones, impactos, sismo), fatiga, pandeo lateral-torsional, holguras ni la resistencia local de pivotes, casquillos, soldaduras o uniones brazo–placa.
     El cálculo de pernos es simplificado: la capacidad real del anclaje depende del material del muro (hormigón, ladrillo hueco/macizo, cartón-yeso) — consulta las fichas técnicas del fabricante del taco y la interacción tracción-cortante.
     La pletina y el angular en voladizo son sensibles a torsión y vuelco lateral no modelados; es preferible usar tubos. Verifica el peso real de la TV + soporte con margen.
   </div>
@@ -333,7 +390,36 @@ const MATERIALS = {
 };
 
 /* =====================================================================
- * 2. TIPOS DE PERFIL
+ * 2. CONEXIONES CANDIDATAS
+ * rigidoVertical: si transmite la flexión de eje horizontal (cargas
+ * gravitatorias). Si alguna conexión interna no la transmite, el
+ * voladizo es un mecanismo inestable.
+ * =================================================================== */
+const JOINTS = {
+  empotramiento: {
+    nombre: "Empotramiento (rígido)",
+    rigidoVertical: true,
+    desc: "Unión soldada o atornillada rígida: transmite momento y cortante. Es la unión a la pared y la opción por defecto entre tramos fijos.",
+  },
+  pivote: {
+    nombre: "Pivote de eje vertical (codo)",
+    rigidoVertical: true,
+    desc: "Articulación de plegado típica de los brazos de TV: gira en planta para extender/recoger, pero transmite íntegramente la flexión vertical (se comporta rígido frente a la gravedad).",
+  },
+  bisagra: {
+    nombre: "Bisagra de eje horizontal",
+    rigidoVertical: false,
+    desc: "Libera el giro vertical: bajo el peso de la TV el brazo cae girando — mecanismo inestable salvo que se añada un tirante u otro apoyo.",
+  },
+  rotula: {
+    nombre: "Rótula esférica",
+    rigidoVertical: false,
+    desc: "Libera todos los giros: mecanismo inestable en voladizo. Solo tiene sentido en sistemas triangulados o con tirantes.",
+  },
+};
+
+/* =====================================================================
+ * 3. TIPOS DE PERFIL
  * props(dims) devuelve { A [mm²], I [mm⁴], W [mm³], hDraw [mm] } para
  * flexión alrededor del eje horizontal (carga vertical). Los perfiles se
  * orientan con el canto (dimensión mayor) en vertical.
@@ -419,7 +505,7 @@ const PROFILE_TYPES = {
 };
 
 /* =====================================================================
- * 3. CATÁLOGO (medidas comerciales habituales, mm)
+ * 4. CATÁLOGO (medidas comerciales habituales, mm)
  * =================================================================== */
 const CATALOG = {
   rect: [
@@ -463,54 +549,99 @@ const CATALOG = {
 };
 
 /* =====================================================================
- * 4. MOTOR DE CÁLCULO (funciones puras, sin DOM)
+ * 5. MOTOR DE CÁLCULO (funciones puras, sin DOM)
  *
- * El modelo usa un array de segmentos para poder ampliarse en el futuro
- * a brazos multi-segmento con articulaciones. Tipos de unión previstos:
- *   "empotramiento" (v1, implementado) · "rotula" · "bisagra"
- * En v1 hay un único segmento empotrado en la pared.
+ * Voladizo de sección escalonada: cada tramo tiene longitud, perfil y
+ * conexión con el elemento anterior (el tramo 1 se une a la pared, que
+ * siempre es un empotramiento). La flecha se integra numéricamente:
+ *   θ(x) = ∫ M/EI dx ;  y(x) = ∫ θ dx
  * =================================================================== */
 
 /** Construye el modelo estructural a partir de las entradas de la UI. */
 function buildModel(inputs) {
   const material = MATERIALS[inputs.material];
-  const props = PROFILE_TYPES[inputs.tipo].props(inputs.dims);
   return {
-    segments: [{
-      L: inputs.L,            // mm
-      profile: props,         // { A, I, W, hDraw }
-      material,               // { E, fy, densidad }
-      joint: "empotramiento", // unión con la pared
-    }],
+    segments: inputs.segments.map((s, i) => ({
+      L: s.L,                                      // mm
+      profile: PROFILE_TYPES[s.tipo].props(s.dims), // { A, I, W, hDraw }
+      material,
+      joint: i === 0 ? "empotramiento" : s.joint,  // unión con el elemento anterior
+    })),
     tipLoad: (inputs.pesoTV + inputs.pesoSoporte) * G, // N
   };
 }
 
-/** Analiza el modelo: flecha, tensión y reacciones en el empotramiento. */
+/** Analiza el modelo: estabilidad, flecha, tensiones y reacciones. */
 function analyze(model, criteria) {
-  // v1: un solo segmento; el bucle deja preparada la extensión multi-segmento.
-  const seg = model.segments[0];
-  const { L, profile, material } = seg;
+  const segs = model.segments;
   const P = model.tipLoad;
-  const EI = material.E * profile.I;
 
-  // Peso propio: A [mm²] → m², ×ρ [kg/m³] ×g → N/m → N/mm
-  const q = profile.A * 1e-6 * material.densidad * G / 1000;
+  // Geometría acumulada y peso propio por tramo
+  let acc = 0;
+  const bounds = segs.map(s => { const a = acc; acc += s.L; return { a, b: acc }; });
+  const Ltot = acc;
+  const qs = segs.map(s => s.profile.A * 1e-6 * s.material.densidad * G / 1000); // N/mm
 
-  const M = P * L + q * L ** 2 / 2;                       // N·mm
-  const V = P + q * L;                                    // N
-  const delta = P * L ** 3 / (3 * EI) + q * L ** 4 / (8 * EI); // mm
-  const sigma = M / profile.W;                            // MPa
-  const sigmaAdm = material.fy / criteria.FS;             // MPa
-  const deltaLim = criteria.deltaLimAbs != null
-    ? criteria.deltaLimAbs
-    : L / criteria.deltaLimRatio;
+  // Estabilidad: una conexión que no transmite flexión vertical => mecanismo
+  const mecanismo = segs.some(s => !JOINTS[s.joint].rigidoVertical);
+
+  // Momento flector en x (todas las cargas a la derecha de x)
+  const Mat = (x) => {
+    let M = P * (Ltot - x);
+    qs.forEach((q, i) => {
+      const { a, b } = bounds[i];
+      if (x <= a) M += q * (b - a) * ((a + b) / 2 - x);
+      else if (x < b) M += q * (b - x) ** 2 / 2;
+    });
+    return M;
+  };
+
+  const M0 = Mat(0);
+  const V0 = P + qs.reduce((sum, q, i) => sum + q * segs[i].L, 0);
+  const pesoTotal = segs.reduce((sum, s) => sum + s.profile.A * 1e-6 * s.material.densidad * s.L / 1000, 0); // kg
+
+  const sigmaAdm = segs[0].material.fy / criteria.FS;
+  const deltaLim = criteria.deltaLimAbs != null ? criteria.deltaLimAbs : Ltot / criteria.deltaLimRatio;
+
+  if (mecanismo) {
+    return { mecanismo: true, Ltot, M: M0, V: V0, pesoTotal, sigmaAdm, deltaLim, apto: false };
+  }
+
+  // Tensión máxima de cada tramo: en su extremo del lado pared (M máximo)
+  const segChecks = segs.map((s, i) => {
+    const M = Mat(bounds[i].a);
+    const sigma = M / s.profile.W;
+    return { M, sigma, util: sigma / sigmaAdm };
+  });
+  const iCrit = segChecks.reduce((im, c, i) => (c.util > segChecks[im].util ? i : im), 0);
+  const sigma = segChecks[iCrit].sigma;
+
+  // Flecha: doble integración numérica de κ = M/EI (trapecios)
+  const N = 400, dx = Ltot / N;
+  const EIat = (x) => {
+    const i = bounds.findIndex(bd => x <= bd.b);
+    const s = segs[i < 0 ? segs.length - 1 : i];
+    return s.material.E * s.profile.I;
+  };
+  const samples = [{ x: 0, y: 0 }];
+  let theta = 0, y = 0, kPrev = Mat(0) / EIat(0);
+  for (let i = 1; i <= N; i++) {
+    const x = i * dx;
+    const k = Mat(x) / EIat(x);
+    const thetaNew = theta + (kPrev + k) / 2 * dx;
+    y += (theta + thetaNew) / 2 * dx;
+    theta = thetaNew;
+    kPrev = k;
+    if (i % 10 === 0) samples.push({ x, y });
+  }
+  const delta = y;
 
   const utilStress = sigma / sigmaAdm;
   const utilDefl = delta / deltaLim;
   return {
-    q, M, V, delta, sigma, sigmaAdm, deltaLim, utilStress, utilDefl,
-    pesoPropio: profile.A * 1e-6 * material.densidad, // kg/m
+    mecanismo: false,
+    Ltot, M: M0, V: V0, delta, sigma, sigmaAdm, deltaLim,
+    utilStress, utilDefl, segChecks, iCrit, pesoTotal, samples,
     apto: utilStress <= 1 && utilDefl <= 1,
   };
 }
@@ -529,17 +660,20 @@ function anchorForces({ M, V }, { s, n }) {
 }
 
 /**
- * Recorre todo el catálogo con el material y criterios actuales y devuelve
- * el perfil más ligero (menor área) que cumple flecha y tensión.
+ * Recorre el catálogo aplicando el mismo perfil a TODOS los tramos
+ * (manteniendo longitudes y conexiones) y devuelve el más ligero que
+ * cumple flecha y tensión. null si ninguno cumple o si hay mecanismo.
  */
 function suggestProfile(inputs, criteria) {
+  if (inputs.segments.some((s, i) => i > 0 && !JOINTS[s.joint].rigidoVertical)) return null;
   let best = null;
   for (const [tipo, entries] of Object.entries(CATALOG)) {
     for (const entry of entries) {
-      const model = buildModel({ ...inputs, tipo, dims: entry.dims });
+      const segments = inputs.segments.map(s => ({ ...s, tipo, dims: entry.dims }));
+      const model = buildModel({ ...inputs, segments });
       const res = analyze(model, criteria);
-      if (res.apto && (!best || model.segments[0].profile.A < best.A)) {
-        best = { tipo, entry, A: model.segments[0].profile.A, res };
+      if (res.apto && (!best || res.pesoTotal < best.res.pesoTotal)) {
+        best = { tipo, entry, res };
       }
     }
   }
@@ -547,48 +681,56 @@ function suggestProfile(inputs, criteria) {
 }
 
 /* =====================================================================
- * 5. SKETCH (SVG)
+ * 6. SKETCH (SVG)
  * =================================================================== */
 const Sketch = {
   WALL_X: 120,
   ARM_Y: 200,
   MAX_ARM_PX: 540,
 
-  /** Símbolo de unión. v1: solo "empotramiento"; "rotula"/"bisagra" previstos. */
-  drawJoint(type, x, y1, y2) {
+  /** Símbolo de conexión entre tramos, centrado en (x, y). */
+  jointSymbol(type, x, y) {
     switch (type) {
-      case "empotramiento": {
-        let s = `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#37474f" stroke-width="4"/>`;
-        for (let y = y1; y < y2; y += 16) {
-          s += `<line x1="${x}" y1="${y + 16}" x2="${x - 14}" y2="${y}" stroke="#78909c" stroke-width="2"/>`;
-        }
-        return s;
-      }
-      case "rotula": // previsto: círculo articulado
-        return `<circle cx="${x}" cy="${(y1 + y2) / 2}" r="7" fill="#fff" stroke="#37474f" stroke-width="2"/>`;
-      case "bisagra": // previsto: círculo con pasador
-        return `<circle cx="${x}" cy="${(y1 + y2) / 2}" r="7" fill="#37474f"/>`;
+      case "pivote": // codo: eje vertical (línea de eje) + casquillo
+        return `<line x1="${x}" y1="${y - 22}" x2="${x}" y2="${y + 22}" stroke="#37474f" stroke-width="1.5" stroke-dasharray="7 3 1.5 3"/>`
+             + `<circle cx="${x}" cy="${y}" r="8" fill="#fff" stroke="#37474f" stroke-width="2.5"/>`
+             + `<circle cx="${x}" cy="${y}" r="2.5" fill="#37474f"/>`;
+      case "bisagra": // articulación de eje horizontal
+        return `<circle cx="${x}" cy="${y}" r="8" fill="#fff" stroke="var(--c-bad)" stroke-width="2.5"/>`;
+      case "rotula": // rótula esférica: doble círculo
+        return `<circle cx="${x}" cy="${y}" r="9" fill="#fff" stroke="var(--c-bad)" stroke-width="2"/>`
+             + `<circle cx="${x}" cy="${y}" r="4" fill="var(--c-bad)"/>`;
+      case "empotramiento": // unión rígida intermedia: placa
+        return `<rect x="${x - 3}" y="${y - 16}" width="6" height="32" fill="#37474f"/>`;
       default:
         return "";
     }
   },
 
-  render(svg, inputs, model, res, bolts) {
-    const seg = model.segments[0];
-    const L = seg.L;
-    const scale = this.MAX_ARM_PX / L;          // px por mm
+  /** Empotramiento a pared: línea con rayado. */
+  wallHatch(x, y1, y2) {
+    let s = `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#37474f" stroke-width="4"/>`;
+    for (let y = y1; y < y2; y += 16) {
+      s += `<line x1="${x}" y1="${y + 16}" x2="${x - 14}" y2="${y}" stroke="#78909c" stroke-width="2"/>`;
+    }
+    return s;
+  },
+
+  render(svg, inputs, model, res) {
+    const segs = model.segments;
+    const Ltot = res.Ltot;
+    const scale = this.MAX_ARM_PX / Ltot;
     const x0 = this.WALL_X, y0 = this.ARM_Y;
-    const xTip = x0 + L * scale;
-    const armColor = res.apto ? "var(--c-ok)" : "var(--c-bad)";
-    const armH = Math.max(6, Math.min(26, seg.profile.hDraw * scale));
+    const xTip = x0 + Ltot * scale;
+    const armColor = res.mecanismo ? "#6a1b9a" : res.apto ? "var(--c-ok)" : "var(--c-bad)";
 
     let s = "";
 
     // Pared + empotramiento
     s += `<rect x="${x0 - 60}" y="40" width="60" height="350" fill="#eceff1"/>`;
-    s += this.drawJoint(seg.joint, x0, 40, 390);
+    s += this.wallHatch(x0, 40, 390);
 
-    // Placa de anclaje con pernos (separación s a escala, limitada al alto de la placa)
+    // Placa de anclaje con pernos
     const sPx = Math.min(inputs.anclaje.s * scale, 220);
     const plateH = sPx + 50;
     s += `<rect x="${x0}" y="${y0 - plateH / 2}" width="12" height="${plateH}" rx="2" fill="#90a4ae" stroke="#546e7a"/>`;
@@ -597,23 +739,31 @@ const Sketch = {
     }
     s += `<text x="${x0 + 22}" y="${y0 - plateH / 2 - 6}" font-size="12" fill="#546e7a">${inputs.anclaje.n}×2 pernos · s=${inputs.anclaje.s} mm</text>`;
 
-    // Brazo
-    s += `<rect x="${x0 + 12}" y="${y0 - armH / 2}" width="${xTip - x0 - 12}" height="${armH}" rx="2" fill="${armColor}"/>`;
+    // Tramos (alturas según el canto de cada perfil) y conexiones
+    let xa = x0 + 12;
+    segs.forEach((seg, i) => {
+      const w = seg.L * scale - (i === 0 ? 12 : 0);
+      const hPx = Math.max(6, Math.min(26, seg.profile.hDraw * scale));
+      s += `<rect x="${xa}" y="${y0 - hPx / 2}" width="${w}" height="${hPx}" rx="2" fill="${armColor}" opacity="${i % 2 ? 0.78 : 1}"/>`;
+      s += `<text x="${xa + w / 2}" y="${y0 - 22}" font-size="12" fill="#546e7a" text-anchor="middle">T${i + 1}</text>`;
+      if (i > 0) s += this.jointSymbol(seg.joint, xa, y0);
+      xa += w;
+    });
 
-    // Deformada exagerada: elástica y(x) = Px²(3L−x)/6EI + qx²(6L²−4Lx+x²)/24EI
-    const EI = seg.material.E * seg.profile.I;
-    const P = model.tipLoad, q = res.q;
-    if (res.delta > 0) {
-      const exag = 60 / res.delta; // la punta baja 60 px en pantalla
+    // Deformada exagerada (de la integración numérica)
+    if (!res.mecanismo && res.delta > 0) {
+      const exag = 60 / res.delta;
       let path = `M ${x0 + 12} ${y0}`;
-      for (let i = 1; i <= 24; i++) {
-        const x = (L * i) / 24;
-        const y = P * x * x * (3 * L - x) / (6 * EI)
-                + q * x * x * (6 * L * L - 4 * L * x + x * x) / (24 * EI);
-        path += ` L ${(x0 + 12 + x * scale).toFixed(1)} ${(y0 + y * exag).toFixed(1)}`;
+      for (const p of res.samples) {
+        path += ` L ${(x0 + 12 + p.x * scale).toFixed(1)} ${(y0 + p.y * exag).toFixed(1)}`;
       }
       s += `<path d="${path}" fill="none" stroke="#7b1fa2" stroke-width="2" stroke-dasharray="6 4" opacity="0.8"/>`;
       s += `<text x="${x0 + 30}" y="${y0 + 85}" font-size="12" fill="#7b1fa2">deformada ×${Math.round(exag)} (exagerada)</text>`;
+    }
+    if (res.mecanismo) {
+      const xc = (x0 + xTip) / 2;
+      s += `<text x="${xc}" y="${y0 + 55}" font-size="14" font-weight="bold" fill="#6a1b9a" text-anchor="middle">⚠ MECANISMO INESTABLE</text>`;
+      s += `<text x="${xc}" y="${y0 + 73}" font-size="12" fill="#6a1b9a" text-anchor="middle">una conexión no transmite la flexión vertical</text>`;
     }
 
     // TV en la punta + flecha de carga
@@ -626,88 +776,239 @@ const Sketch = {
     s += `<polygon points="${xTip - 6},${yArr + 38} ${xTip + 6},${yArr + 38} ${xTip},${yArr + 50}" fill="var(--c-bad)"/>`;
     s += `<text x="${xTip + 12}" y="${yArr + 36}" font-size="13" fill="var(--c-bad)">P = ${(inputs.pesoTV + inputs.pesoSoporte).toFixed(1)} kg</text>`;
 
-    // Cota de longitud
+    // Cota de longitud total con divisiones por tramo
     const yDim = 90;
     s += `<line x1="${x0 + 12}" y1="${yDim}" x2="${xTip}" y2="${yDim}" stroke="#546e7a" stroke-width="1"/>`;
     s += `<line x1="${x0 + 12}" y1="${yDim - 6}" x2="${x0 + 12}" y2="${yDim + 6}" stroke="#546e7a" stroke-width="1"/>`;
-    s += `<line x1="${xTip}" y1="${yDim - 6}" x2="${xTip}" y2="${yDim + 6}" stroke="#546e7a" stroke-width="1"/>`;
-    s += `<text x="${(x0 + 12 + xTip) / 2}" y="${yDim - 8}" font-size="13" fill="#546e7a" text-anchor="middle">L = ${(L / 10).toFixed(0)} cm</text>`;
+    let accL = 0;
+    segs.forEach(seg => {
+      accL += seg.L;
+      const xb = Math.min(x0 + 12 + accL * scale, xTip);
+      s += `<line x1="${xb}" y1="${yDim - 6}" x2="${xb}" y2="${yDim + 6}" stroke="#546e7a" stroke-width="1"/>`;
+    });
+    s += `<text x="${(x0 + 12 + xTip) / 2}" y="${yDim - 8}" font-size="13" fill="#546e7a" text-anchor="middle">L total = ${(Ltot / 10).toFixed(0)} cm</text>`;
 
     svg.innerHTML = s;
   },
 };
 
 /* =====================================================================
- * 6. UI (solo en navegador)
+ * 7. VISTA PREVIA DE LA SECCIÓN (SVG pequeño por tramo)
+ * =================================================================== */
+function sectionSVG(tipo, dims, size = 86) {
+  const pad = 14, span = size - 2 * pad;
+  const fill = "#78909c", stroke = "#455a64";
+  let shapes = "", labels = "";
+  const dimLine = (x1, y1, x2, y2, text, tx, ty, anchor = "middle") =>
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#1565c0" stroke-width="1"/>` +
+    `<text x="${tx}" y="${ty}" font-size="9" fill="#1565c0" text-anchor="${anchor}">${text}</text>`;
+
+  if (tipo === "rect" || tipo === "cuadrado") {
+    const b = tipo === "cuadrado" ? dims.a : dims.b;
+    const h = tipo === "cuadrado" ? dims.a : dims.h;
+    const t = dims.t;
+    const k = span / Math.max(b, h);
+    const w = b * k, hh = h * k, tt = Math.max(1.5, t * k);
+    const x = (size - w) / 2, y = (size - hh) / 2;
+    shapes = `<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="${fill}" stroke="${stroke}"/>`
+           + `<rect x="${x + tt}" y="${y + tt}" width="${w - 2 * tt}" height="${hh - 2 * tt}" fill="#fff"/>`;
+    labels = dimLine(x - 6, y, x - 6, y + hh, tipo === "cuadrado" ? `a=${h}` : `h=${h}`, x - 8, y + hh / 2, "end")
+           + dimLine(x, y + hh + 7, x + w, y + hh + 7, tipo === "cuadrado" ? "" : `b=${b}`, x + w / 2, size - 1)
+           + `<text x="${x + w - tt / 2}" y="${y + hh / 2 + 3}" font-size="9" fill="#c62828" text-anchor="start"> t=${t}</text>`;
+  } else if (tipo === "redondo") {
+    const k = span / dims.D, R = dims.D * k / 2, r = (dims.D / 2 - dims.t) * k;
+    const c = size / 2;
+    shapes = `<circle cx="${c}" cy="${c}" r="${R}" fill="${fill}" stroke="${stroke}"/>`
+           + `<circle cx="${c}" cy="${c}" r="${Math.max(1, r)}" fill="#fff"/>`;
+    labels = dimLine(c - R, c, c + R, c, `D=${dims.D}`, c, c - R - 4)
+           + `<text x="${c + R * 0.72}" y="${c + R * 0.72 + 10}" font-size="9" fill="#c62828">t=${dims.t}</text>`;
+  } else if (tipo === "pletina") {
+    const k = span / Math.max(dims.b, dims.h);
+    const w = Math.max(3, dims.b * k), hh = dims.h * k;
+    const x = (size - w) / 2, y = (size - hh) / 2;
+    shapes = `<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="${fill}" stroke="${stroke}"/>`;
+    labels = dimLine(x - 6, y, x - 6, y + hh, `h=${dims.h}`, x - 8, y + hh / 2, "end")
+           + dimLine(x, y + hh + 7, x + w, y + hh + 7, `b=${dims.b}`, x + w / 2, size - 1);
+  } else if (tipo === "angular") {
+    const k = span / Math.max(dims.b, dims.h);
+    const w = dims.b * k, hh = dims.h * k, tt = Math.max(2, dims.t * k);
+    const x = (size - w) / 2, y = (size - hh) / 2;
+    shapes = `<path d="M ${x} ${y} h ${tt} v ${hh - tt} h ${w - tt} v ${tt} h ${-w} Z" fill="${fill}" stroke="${stroke}"/>`;
+    labels = dimLine(x - 6, y, x - 6, y + hh, `h=${dims.h}`, x - 8, y + hh / 2, "end")
+           + dimLine(x, y + hh + 7, x + w, y + hh + 7, `b=${dims.b}`, x + w / 2, size - 1)
+           + `<text x="${x + tt + 2}" y="${y + 10}" font-size="9" fill="#c62828">t=${dims.t}</text>`;
+  }
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">${shapes}${labels}</svg>`;
+}
+
+/* =====================================================================
+ * 8. UI (solo en navegador)
  * =================================================================== */
 if (typeof document !== "undefined") {
   const $ = (id) => document.getElementById(id);
   const els = {
-    pesoTV: $("in-peso-tv"), pesoSoporte: $("in-peso-soporte"), L: $("in-longitud"),
-    tipo: $("in-tipo"), dims: $("in-dims"), customDims: $("custom-dims"),
+    pesoTV: $("in-peso-tv"), pesoSoporte: $("in-peso-soporte"),
+    segments: $("segments"), addSeg: $("btn-add-seg"),
     material: $("in-material"), fs: $("in-fs"),
     flechaLim: $("in-flecha-lim"), flechaAbs: $("in-flecha-abs"), fieldFlechaAbs: $("field-flecha-abs"),
     sepPernos: $("in-sep-pernos"), nPernos: $("in-n-pernos"),
-    error: $("input-error"), svg: $("sketch-svg"),
+    error: $("input-error"), svg: $("sketch-svg"), legend: $("joint-legend"),
     verdict: $("verdict"), grid: $("results-grid"), suggestion: $("suggestion"),
   };
+  const MAX_SEGMENTS = 3;
 
-  function fillSelect(sel, options) {
+  /* Estado de los tramos. dimsIdx = índice de catálogo o "custom". */
+  const state = {
+    segments: [
+      { L: 300, tipo: "rect", dimsIdx: 1, custom: null, joint: "empotramiento" }, // 40×20×2
+      { L: 300, tipo: "rect", dimsIdx: 0, custom: null, joint: "pivote" },        // 30×20×2
+    ],
+  };
+
+  const segDims = (s) => s.dimsIdx === "custom" ? s.custom : CATALOG[s.tipo][s.dimsIdx].dims;
+
+  function fillSelect(sel, options, value) {
     sel.innerHTML = options.map(o => `<option value="${o.value}">${o.label}</option>`).join("");
+    if (value != null) sel.value = String(value);
   }
 
-  function populateTipos() {
-    fillSelect(els.tipo, Object.entries(PROFILE_TYPES).map(([k, v]) => ({ value: k, label: v.nombre })));
-  }
-  function populateMateriales() {
-    fillSelect(els.material, Object.entries(MATERIALS).map(([k, v]) => ({ value: k, label: v.nombre })));
-  }
-  function populateDims(tipo, keepCustom) {
-    const opts = CATALOG[tipo].map((e, i) => ({ value: String(i), label: e.label }));
-    opts.push({ value: "custom", label: "Personalizado…" });
-    fillSelect(els.dims, opts);
-    if (keepCustom) els.dims.value = "custom";
-    renderCustomDims(tipo);
-  }
-  function renderCustomDims(tipo) {
-    const custom = els.dims.value === "custom";
-    els.customDims.hidden = !custom;
-    if (!custom) { els.customDims.innerHTML = ""; return; }
-    const base = CATALOG[tipo][0].dims;
-    els.customDims.innerHTML = PROFILE_TYPES[tipo].params.map(p => `
-      <div class="field">
-        <label for="dim-${p.key}">${p.label} (mm)</label>
-        <input type="number" id="dim-${p.key}" value="${base[p.key]}" min="0.5" step="0.5">
-      </div>`).join("");
-    for (const p of PROFILE_TYPES[tipo].params) {
-      $(`dim-${p.key}`).addEventListener("input", recalc);
-    }
+  /* ---------- Tramos: render de tarjetas ---------- */
+  function renderSegments() {
+    els.segments.innerHTML = state.segments.map((s, i) => {
+      const dimOpts = CATALOG[s.tipo].map((e, j) => `<option value="${j}">${e.label}</option>`).join("")
+                    + `<option value="custom">Personalizado…</option>`;
+      const jointOpts = Object.entries(JOINTS)
+        .map(([k, j]) => `<option value="${k}">${j.nombre}</option>`).join("");
+      const customHTML = s.dimsIdx !== "custom" ? "" : `
+        <div class="custom-dims">
+          ${PROFILE_TYPES[s.tipo].params.map(p => `
+            <div class="field">
+              <label for="seg${i}-dim-${p.key}">${p.label} (mm)</label>
+              <input type="number" id="seg${i}-dim-${p.key}" value="${s.custom[p.key]}" min="0.5" step="0.5">
+            </div>`).join("")}
+        </div>`;
+      return `
+      <div class="seg-card" data-i="${i}">
+        <div class="seg-head">
+          <strong>Tramo ${i + 1}</strong>
+          ${state.segments.length > 1 ? `<button type="button" id="seg${i}-del">✕ Quitar</button>` : ""}
+        </div>
+        <div class="field">
+          <label for="seg${i}-joint">Conexión con ${i === 0 ? "la pared" : `el tramo ${i}`}</label>
+          ${i === 0
+            ? `<select id="seg${i}-joint" disabled><option>Empotramiento a pared (placa anclada)</option></select>`
+            : `<select id="seg${i}-joint">${jointOpts}</select>`}
+        </div>
+        <div class="seg-body">
+          <div>
+            <div class="field">
+              <label for="seg${i}-L">Longitud (cm)</label>
+              <input type="number" id="seg${i}-L" value="${s.L / 10}" min="1" step="1">
+            </div>
+            <div class="field">
+              <label for="seg${i}-tipo">Tipo de perfil</label>
+              <select id="seg${i}-tipo">
+                ${Object.entries(PROFILE_TYPES).map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join("")}
+              </select>
+            </div>
+            <div class="field">
+              <label for="seg${i}-dims">Dimensiones (mm)</label>
+              <select id="seg${i}-dims">${dimOpts}</select>
+            </div>
+          </div>
+          <div class="section-preview" id="seg${i}-prev"></div>
+        </div>
+        ${customHTML}
+      </div>`;
+    }).join("");
+
+    // Valores y listeners por tramo
+    state.segments.forEach((s, i) => {
+      $(`seg${i}-tipo`).value = s.tipo;
+      $(`seg${i}-dims`).value = String(s.dimsIdx);
+      if (i > 0) $(`seg${i}-joint`).value = s.joint;
+      updatePreview(i);
+
+      $(`seg${i}-L`).addEventListener("input", () => {
+        s.L = parseFloat($(`seg${i}-L`).value) * 10;
+        recalc();
+      });
+      $(`seg${i}-tipo`).addEventListener("change", () => {
+        s.tipo = $(`seg${i}-tipo`).value;
+        s.dimsIdx = 0;
+        s.custom = null;
+        renderSegments(); recalc();
+      });
+      $(`seg${i}-dims`).addEventListener("change", () => {
+        const v = $(`seg${i}-dims`).value;
+        if (v === "custom") {
+          s.custom = { ...CATALOG[s.tipo][s.dimsIdx === "custom" ? 0 : s.dimsIdx].dims };
+          s.dimsIdx = "custom";
+          renderSegments();
+        } else {
+          s.dimsIdx = parseInt(v, 10);
+          updatePreview(i);
+        }
+        recalc();
+      });
+      if (i > 0) $(`seg${i}-joint`).addEventListener("change", () => {
+        s.joint = $(`seg${i}-joint`).value;
+        recalc();
+      });
+      if (s.dimsIdx === "custom") {
+        for (const p of PROFILE_TYPES[s.tipo].params) {
+          $(`seg${i}-dim-${p.key}`).addEventListener("input", () => {
+            s.custom[p.key] = parseFloat($(`seg${i}-dim-${p.key}`).value);
+            updatePreview(i);
+            recalc();
+          });
+        }
+      }
+      const del = $(`seg${i}-del`);
+      if (del) del.addEventListener("click", () => {
+        state.segments.splice(i, 1);
+        renderSegments(); recalc();
+      });
+    });
+    els.addSeg.disabled = state.segments.length >= MAX_SEGMENTS;
   }
 
+  function updatePreview(i) {
+    const s = state.segments[i];
+    const d = segDims(s);
+    const ok = d && Object.values(d).every(v => v > 0);
+    $(`seg${i}-prev`).innerHTML = (ok ? sectionSVG(s.tipo, d) : "")
+      + `<div class="cap">${PROFILE_TYPES[s.tipo].nombre}</div>`;
+  }
+
+  /* ---------- Leyenda de conexiones candidatas ---------- */
+  function renderLegend() {
+    const sym = (k) =>
+      `<svg width="34" height="34" viewBox="-17 -17 34 34">${
+        k === "empotramiento"
+          ? '<line x1="-9" y1="-13" x2="-9" y2="13" stroke="#37474f" stroke-width="3"/><line x1="-9" y1="-9" x2="-15" y2="-14" stroke="#78909c" stroke-width="1.5"/><line x1="-9" y1="-2" x2="-15" y2="-7" stroke="#78909c" stroke-width="1.5"/><line x1="-9" y1="5" x2="-15" y2="0" stroke="#78909c" stroke-width="1.5"/><line x1="-9" y1="12" x2="-15" y2="7" stroke="#78909c" stroke-width="1.5"/><line x1="-9" y1="0" x2="13" y2="0" stroke="#37474f" stroke-width="3"/>'
+          : Sketch.jointSymbol(k, 0, 0)
+      }</svg>`;
+    els.legend.innerHTML = Object.entries(JOINTS).map(([k, j]) =>
+      `<li>${sym(k)}<span><strong>${j.nombre}</strong>${j.rigidoVertical ? "" : " ⚠"} — ${j.desc}</span></li>`
+    ).join("");
+  }
+
+  /* ---------- Entradas globales ---------- */
   function getInputs() {
-    const tipo = els.tipo.value;
-    let dims;
-    if (els.dims.value === "custom") {
-      dims = {};
-      for (const p of PROFILE_TYPES[tipo].params) dims[p.key] = parseFloat($(`dim-${p.key}`).value);
-    } else {
-      dims = { ...CATALOG[tipo][parseInt(els.dims.value, 10)].dims };
-    }
     return {
       pesoTV: parseFloat(els.pesoTV.value),
       pesoSoporte: parseFloat(els.pesoSoporte.value),
-      L: parseFloat(els.L.value) * 10, // cm → mm
-      tipo, dims,
       material: els.material.value,
+      segments: state.segments.map(s => ({ L: s.L, tipo: s.tipo, dims: segDims(s), joint: s.joint })),
       anclaje: { s: parseFloat(els.sepPernos.value), n: parseInt(els.nPernos.value, 10) },
     };
   }
-  function getCriteria(L) {
-    const FS = parseFloat(els.fs.value);
+  function getCriteria() {
     const abs = els.flechaLim.value === "abs";
     els.fieldFlechaAbs.hidden = !abs;
     return {
-      FS,
+      FS: parseFloat(els.fs.value),
       deltaLimRatio: abs ? null : parseFloat(els.flechaLim.value),
       deltaLimAbs: abs ? parseFloat(els.flechaAbs.value) : null,
     };
@@ -717,13 +1018,15 @@ if (typeof document !== "undefined") {
     const errs = [];
     if (!(inputs.pesoTV >= 0)) errs.push("El peso de la TV debe ser ≥ 0.");
     if (!(inputs.pesoTV + inputs.pesoSoporte > 0)) errs.push("La carga total debe ser positiva.");
-    if (!(inputs.L > 0)) errs.push("La longitud del brazo debe ser positiva.");
-    for (const [k, v] of Object.entries(inputs.dims)) {
-      if (!(v > 0)) errs.push(`La dimensión "${k}" debe ser positiva.`);
-    }
-    if (errs.length === 0 && !PROFILE_TYPES[inputs.tipo].valida(inputs.dims)) {
-      errs.push("Dimensiones incoherentes: el espesor es demasiado grande para el perfil.");
-    }
+    inputs.segments.forEach((s, i) => {
+      if (!(s.L > 0)) errs.push(`Tramo ${i + 1}: la longitud debe ser positiva.`);
+      for (const [k, v] of Object.entries(s.dims)) {
+        if (!(v > 0)) errs.push(`Tramo ${i + 1}: la dimensión "${k}" debe ser positiva.`);
+      }
+      if (Object.values(s.dims).every(v => v > 0) && !PROFILE_TYPES[s.tipo].valida(s.dims)) {
+        errs.push(`Tramo ${i + 1}: espesor demasiado grande para el perfil.`);
+      }
+    });
     if (!(criteria.FS >= 1)) errs.push("El factor de seguridad debe ser ≥ 1.");
     if (criteria.deltaLimAbs != null && !(criteria.deltaLimAbs > 0)) errs.push("El límite de flecha absoluto debe ser positivo.");
     if (!(inputs.anclaje.s > 0)) errs.push("La separación entre filas de pernos debe ser positiva.");
@@ -741,42 +1044,55 @@ if (typeof document !== "undefined") {
   }
 
   function renderResults(inputs, res, bolts, best) {
+    if (res.mecanismo) {
+      els.verdict.className = "inestable";
+      els.verdict.textContent = "⚠ INESTABLE (mecanismo)";
+      els.grid.innerHTML = `<div class="rcard" style="grid-column:1/-1">
+        <div class="rtitle">Estructura no calculable</div>
+        <div class="rvalue">Una conexión no transmite la flexión vertical</div>
+        <div class="rsub">Una bisagra de eje horizontal o una rótula esférica dejan caer el brazo bajo la gravedad.
+        Cámbiala por un <strong>pivote de eje vertical</strong> (codo de brazo articulado) o un <strong>empotramiento</strong>,
+        o añade un tirante (fuera del alcance de esta versión).</div></div>`;
+      els.suggestion.innerHTML = "";
+      return;
+    }
+
     els.verdict.className = res.apto ? "apto" : "noapto";
     els.verdict.textContent = res.apto ? "✓ APTO" : "✗ NO APTO";
+
+    const segList = res.segChecks
+      .map((c, i) => `T${i + 1}: ${fmt(c.sigma, 0)} MPa`)
+      .join(" · ");
 
     els.grid.innerHTML =
       rcard("Flecha en punta",
         `${fmt(res.delta, 2)} mm`,
-        `límite ${fmt(res.deltaLim, 2)} mm · utilización ${fmt(res.utilDefl * 100, 0)} %`,
+        `límite ${fmt(res.deltaLim, 2)} mm (L=${fmt(res.Ltot / 10, 0)} cm) · utilización ${fmt(res.utilDefl * 100, 0)} %`,
         res.utilDefl) +
-      rcard("Tensión máxima",
+      rcard(`Tensión máxima (tramo ${res.iCrit + 1})`,
         `${fmt(res.sigma, 1)} MPa`,
-        `admisible ${fmt(res.sigmaAdm, 1)} MPa · utilización ${fmt(res.utilStress * 100, 0)} %`,
+        `admisible ${fmt(res.sigmaAdm, 1)} MPa · ${segList}`,
         res.utilStress) +
-      rcard("Reacciones en el empotramiento",
+      rcard("Reacciones en la pared",
         `M = ${fmt(res.M / 1000, 1)} N·m`,
         `cortante V = ${fmt(res.V, 1)} N`) +
       rcard("Fuerzas por perno",
         `Tracción ${fmt(bolts.tensionPerno, 0)} N`,
         `≈ ${fmt(bolts.tensionPerno / G, 1)} kgf de arranque · cortante ${fmt(bolts.cortantePerno, 0)} N`) +
-      rcard("Peso propio del perfil",
-        `${fmt(res.pesoPropio, 2)} kg/m`,
-        `carga distribuida q = ${fmt(res.q * 1000, 2)} N/m`);
+      rcard("Peso propio de la estructura",
+        `${fmt(res.pesoTotal, 2)} kg`,
+        inputs.segments.map((s, i) => `T${i + 1}: ${PROFILE_TYPES[s.tipo].nombre}`).join(" · "));
 
     if (best) {
-      const mismo = best.tipo === inputs.tipo && els.dims.value !== "custom" &&
-        CATALOG[best.tipo][parseInt(els.dims.value, 10)] === best.entry;
       els.suggestion.innerHTML =
-        `<strong>Perfil óptimo del catálogo:</strong> ${PROFILE_TYPES[best.tipo].nombre} ${best.entry.label} ` +
-        `(${fmt(best.res.pesoPropio, 2)} kg/m · utilización ${fmt(Math.max(best.res.utilStress, best.res.utilDefl) * 100, 0)} %)` +
-        (mismo ? " — es el seleccionado." : ` <button id="btn-apply">Aplicar</button>`);
-      const btn = $("btn-apply");
-      if (btn) btn.addEventListener("click", () => {
-        els.tipo.value = best.tipo;
-        populateDims(best.tipo, false);
-        els.dims.value = String(CATALOG[best.tipo].indexOf(best.entry));
-        renderCustomDims(best.tipo);
-        recalc();
+        `<strong>Perfil óptimo del catálogo</strong> (mismo perfil en todos los tramos): ` +
+        `${PROFILE_TYPES[best.tipo].nombre} ${best.entry.label} ` +
+        `(${fmt(best.res.pesoTotal, 2)} kg · utilización ${fmt(Math.max(best.res.utilStress, best.res.utilDefl) * 100, 0)} %)` +
+        ` <button id="btn-apply">Aplicar</button>`;
+      $("btn-apply").addEventListener("click", () => {
+        const idx = CATALOG[best.tipo].indexOf(best.entry);
+        state.segments.forEach(s => { s.tipo = best.tipo; s.dimsIdx = idx; s.custom = null; });
+        renderSegments(); recalc();
       });
     } else {
       els.suggestion.innerHTML =
@@ -787,7 +1103,7 @@ if (typeof document !== "undefined") {
 
   function recalc() {
     const inputs = getInputs();
-    const criteria = getCriteria(inputs.L);
+    const criteria = getCriteria();
     const errs = validate(inputs, criteria);
     els.error.classList.toggle("visible", errs.length > 0);
     if (errs.length > 0) {
@@ -797,21 +1113,22 @@ if (typeof document !== "undefined") {
     const model = buildModel(inputs);
     const res = analyze(model, criteria);
     const bolts = anchorForces(res, inputs.anclaje);
-    const best = suggestProfile(inputs, criteria);
+    const best = res.mecanismo ? null : suggestProfile(inputs, criteria);
     renderResults(inputs, res, bolts, best);
-    Sketch.render(els.svg, inputs, model, res, bolts);
+    Sketch.render(els.svg, inputs, model, res);
   }
 
   // Inicialización
-  populateTipos();
-  populateMateriales();
-  els.tipo.value = "rect";
-  populateDims("rect", false);
-  els.dims.value = "1"; // 40×20×2 por defecto
-
-  els.tipo.addEventListener("change", () => { populateDims(els.tipo.value, false); recalc(); });
-  els.dims.addEventListener("change", () => { renderCustomDims(els.tipo.value); recalc(); });
-  for (const el of [els.pesoTV, els.pesoSoporte, els.L, els.material, els.fs,
+  fillSelect(els.material, Object.entries(MATERIALS).map(([k, v]) => ({ value: k, label: v.nombre })), "S235");
+  renderLegend();
+  renderSegments();
+  els.addSeg.addEventListener("click", () => {
+    if (state.segments.length >= MAX_SEGMENTS) return;
+    const last = state.segments[state.segments.length - 1];
+    state.segments.push({ L: 200, tipo: last.tipo, dimsIdx: last.dimsIdx === "custom" ? 0 : last.dimsIdx, custom: null, joint: "pivote" });
+    renderSegments(); recalc();
+  });
+  for (const el of [els.pesoTV, els.pesoSoporte, els.material, els.fs,
                     els.flechaLim, els.flechaAbs, els.sepPernos, els.nPernos]) {
     el.addEventListener("input", recalc);
     el.addEventListener("change", recalc);
@@ -821,7 +1138,7 @@ if (typeof document !== "undefined") {
 
 /* Exportación para pruebas en Node (no afecta al navegador). */
 if (typeof module !== "undefined") {
-  module.exports = { MATERIALS, PROFILE_TYPES, CATALOG, buildModel, analyze, anchorForces, suggestProfile };
+  module.exports = { MATERIALS, JOINTS, PROFILE_TYPES, CATALOG, buildModel, analyze, anchorForces, suggestProfile, sectionSVG };
 }
 </script>
 </body>
