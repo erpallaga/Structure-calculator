@@ -96,6 +96,28 @@
   }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
+  /* Conmutador vista simple / completa */
+  #mode-toggle {
+    display: flex;
+    border: 1px solid var(--c-accent);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  #mode-toggle button {
+    flex: 1;
+    padding: 7px 4px;
+    border: none;
+    background: #fff;
+    color: var(--c-accent);
+    cursor: pointer;
+    font-size: 0.88rem;
+  }
+  #mode-toggle button.active { background: var(--c-accent); color: #fff; font-weight: 600; }
+  body.simple .adv { display: none !important; }
+  /* En la vista simple, la fila peso TV / soporte queda a una columna */
+  body.simple .row2 { grid-template-columns: 1fr; }
+
   /* Tramos */
   .seg-card {
     border: 1px solid var(--c-border);
@@ -297,70 +319,89 @@
   <aside class="panel" id="panel-inputs">
     <h2>Datos de entrada</h2>
 
-    <h3>Cargas</h3>
+    <div id="mode-toggle">
+      <button id="mode-simple" type="button">Vista simple</button>
+      <button id="mode-full" type="button">Vista completa</button>
+    </div>
+
+    <h3>1 · Pared y placa de anclaje</h3>
+    <div class="field">
+      <label for="in-muro">Tipo de muro</label>
+      <select id="in-muro"></select>
+    </div>
+    <div class="row2 adv">
+      <div class="field">
+        <label for="in-filas">Filas de pernos</label>
+        <select id="in-filas">
+          <option value="2" selected>2 filas</option>
+          <option value="3">3 filas</option>
+          <option value="4">4 filas</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="in-n-pernos">Pernos por fila</label>
+        <input type="number" id="in-n-pernos" value="2" min="1" step="1">
+      </div>
+    </div>
+    <div class="field adv">
+      <label for="in-sep-pernos">Separación vertical entre filas s (mm)</label>
+      <input type="number" id="in-sep-pernos" value="100" min="10" step="5">
+    </div>
+    <div class="field adv">
+      <label for="in-wall-joint">Unión placa – tramo 1</label>
+      <select id="in-wall-joint"></select>
+    </div>
+
+    <h3>2 · Tramos de la estructura</h3>
+    <div id="segments"></div>
+    <button id="btn-add-seg" type="button" class="adv">+ Añadir tramo</button>
+    <div class="field adv" style="margin-top:10px">
+      <label for="in-support">Apoyo adicional en el extremo del último tramo</label>
+      <select id="in-support"></select>
+    </div>
+
+    <h3>3 · Material (toda la estructura)</h3>
+    <div class="field">
+      <select id="in-material" aria-label="Material"></select>
+    </div>
+
+    <h3>4 · Carga (TV)</h3>
     <div class="row2">
       <div class="field">
         <label for="in-peso-tv">Peso TV (kg)</label>
         <input type="number" id="in-peso-tv" value="15" min="0" step="0.5">
       </div>
-      <div class="field">
+      <div class="field adv">
         <label for="in-peso-soporte">Peso soporte (kg)</label>
         <input type="number" id="in-peso-soporte" value="2" min="0" step="0.5">
       </div>
     </div>
-    <div class="field">
+    <div class="field adv">
       <label for="in-tv-seg">La TV cuelga del extremo del…</label>
       <select id="in-tv-seg"></select>
     </div>
 
-    <h3>Tramos de la estructura</h3>
-    <div id="segments"></div>
-    <button id="btn-add-seg" type="button">+ Añadir tramo</button>
-    <div class="field" style="margin-top:10px">
-      <label for="in-support">Apoyo adicional en el extremo del último tramo</label>
-      <select id="in-support"></select>
-    </div>
-
-    <h3>Material (toda la estructura)</h3>
-    <div class="field">
-      <select id="in-material" aria-label="Material"></select>
-    </div>
-
-    <h3>Criterios</h3>
-    <div class="row2">
-      <div class="field">
-        <label for="in-fs">Factor de seguridad</label>
-        <input type="number" id="in-fs" value="2" min="1" step="0.1">
+    <div class="adv">
+      <h3>5 · Criterios de comprobación</h3>
+      <div class="row2">
+        <div class="field">
+          <label for="in-fs">Factor de seguridad</label>
+          <input type="number" id="in-fs" value="2" min="1" step="0.1">
+        </div>
+        <div class="field">
+          <label for="in-flecha-lim">Límite de flecha</label>
+          <select id="in-flecha-lim">
+            <option value="150">L/150</option>
+            <option value="200" selected>L/200</option>
+            <option value="250">L/250</option>
+            <option value="300">L/300</option>
+            <option value="abs">Absoluto (mm)</option>
+          </select>
+        </div>
       </div>
-      <div class="field">
-        <label for="in-flecha-lim">Límite de flecha</label>
-        <select id="in-flecha-lim">
-          <option value="150">L/150</option>
-          <option value="200" selected>L/200</option>
-          <option value="250">L/250</option>
-          <option value="300">L/300</option>
-          <option value="abs">Absoluto (mm)</option>
-        </select>
-      </div>
-    </div>
-    <div class="field" id="field-flecha-abs" hidden>
-      <label for="in-flecha-abs">Flecha máxima absoluta (mm)</label>
-      <input type="number" id="in-flecha-abs" value="3" min="0.1" step="0.5">
-    </div>
-
-    <h3>Placa de anclaje</h3>
-    <div class="field">
-      <label for="in-muro">Tipo de muro</label>
-      <select id="in-muro"></select>
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label for="in-sep-pernos">Separación vertical entre filas s (mm)</label>
-        <input type="number" id="in-sep-pernos" value="100" min="10" step="5">
-      </div>
-      <div class="field">
-        <label for="in-n-pernos">Pernos por fila (2 filas)</label>
-        <input type="number" id="in-n-pernos" value="2" min="1" step="1">
+      <div class="field" id="field-flecha-abs" hidden>
+        <label for="in-flecha-abs">Flecha máxima absoluta (mm)</label>
+        <input type="number" id="in-flecha-abs" value="3" min="0.1" step="0.5">
       </div>
     </div>
 
@@ -394,7 +435,7 @@
       <li>Flecha: desplazamiento vertical del nudo de la TV ≤ límite, referido a la distancia horizontal pared–TV (o a la longitud total si la TV está en la pared).</li>
       <li><strong>Conexiones:</strong> el <em>pivote de eje vertical</em> (codo de brazo articulado) gira en planta pero transmite la flexión vertical → rígido en este modelo plano. La <em>bisagra de eje horizontal</em> y la <em>rótula</em> liberan el momento en el plano: la estructura solo es estable si otros apoyos lo permiten; si la matriz de rigidez resulta singular, la app lo señala como <strong>mecanismo inestable</strong>.</li>
       <li><strong>Apoyos en el extremo:</strong> <em>deslizante</em> (rodillo: restringe solo el movimiento vertical, p. ej. una pata apoyada en el suelo) o <em>articulado fijo</em> (restringe vertical y horizontal). Convierten el voladizo en una estructura apuntalada y reducen drásticamente flecha y momento en la pared.</li>
-      <li>Anclaje: placa con 2 filas de pernos separadas s. Tracción por perno T = M/(s·n) + tracción axial repartida; cortante repartido V<sub>p</sub> = V/(2n).</li>
+      <li>Anclaje: placa rígida con n<sub>f</sub> filas de pernos equiespaciadas s que gira sobre la fila inferior; tracción máxima por perno T = M·d<sub>máx</sub>/(n·Σd<sub>j</sub>²) + tracción axial repartida; cortante repartido entre todos los pernos. La unión placa–tramo 1 puede ser rígida o articulada (bisagra/rótula liberan el momento hacia los anclajes, pero exigen otros apoyos para la estabilidad).</li>
       <li>Recomendación de taco/tornillo: se elige el menor anclaje del tipo de muro cuya capacidad orientativa de servicio cumple la interacción lineal T/T<sub>adm</sub> + V/V<sub>adm</sub> ≤ 1. Son valores genéricos conservadores, no de un fabricante concreto.</li>
       <li>Perfiles orientados con su dimensión mayor (canto) en el plano de flexión. Propiedades de sección sin radios de acuerdo (≈5–10 % optimistas en inercia).</li>
     </ul>
@@ -625,7 +666,9 @@ function buildModel(inputs) {
         n1, n2: n1 + 1, L: Le, c, s: sn, segIdx: si,
         E: material.E, A: props.A, I: props.I, W: props.W, hDraw: props.hDraw,
         q: props.A * 1e-6 * material.densidad * G / 1000, // N/mm
-        hinge: j === 0 && si > 0 && !JOINTS[s.joint].transmiteMomento,
+        // Liberación de momento al inicio del tramo (también en la unión
+        // placa–tramo 1 si el usuario la elige articulada)
+        hinge: j === 0 && !JOINTS[s.joint].transmiteMomento,
       });
     }
   });
@@ -830,13 +873,19 @@ function analyze(model, criteria) {
 
 /**
  * Fuerzas en los pernos de la placa de anclaje (modelo simplificado):
- * el momento lo resiste el par entre filas separadas s; la tracción axial
- * y el cortante se reparten entre todos los pernos.
+ * placa rígida con nf filas equiespaciadas s que gira sobre la fila
+ * inferior; la tracción de cada fila es proporcional a su distancia
+ * (T_max = M·d_max / (n·Σd_j²)). La tracción axial y el cortante se
+ * reparten entre todos los pernos. Con nf=2 equivale a T = M/(s·n).
  */
-function anchorForces({ M, V, pull = 0 }, { s, n }) {
+function anchorForces({ M, V, pull = 0 }, { s, n, nf = 2 }) {
+  let sumd2 = 0;
+  for (let j = 1; j < nf; j++) sumd2 += (j * s) ** 2;
+  const dmax = (nf - 1) * s;
+  const total = nf * n;
   return {
-    tensionPerno: M / (s * n) + pull / (2 * n), // N
-    cortantePerno: V / (2 * n),                 // N
+    tensionPerno: M * dmax / (n * sumd2) + pull / total, // N
+    cortantePerno: V / total,                            // N
   };
 }
 
@@ -996,13 +1045,15 @@ const Sketch = {
     const wallX = mx(0);
     s += `<rect x="${wallX - 60}" y="30" width="60" height="400" fill="#eceff1"/>`;
     s += this.wallHatch(wallX, 30, 430);
-    const sPx = Math.min(inputs.anclaje.s * scale, 160);
-    const plateH = sPx + 44;
+    const nf = inputs.anclaje.nf || 2;
+    const sPx = Math.min(inputs.anclaje.s * scale, 160 / (nf - 1));
+    const groupH = sPx * (nf - 1);
+    const plateH = groupH + 44;
     s += `<rect x="${wallX}" y="${my(0) - plateH / 2}" width="10" height="${plateH}" rx="2" fill="#90a4ae" stroke="#546e7a"/>`;
-    for (const dy of [-sPx / 2, sPx / 2]) {
-      s += `<circle cx="${wallX + 5}" cy="${my(0) + dy}" r="3.5" fill="#37474f"/>`;
+    for (let f = 0; f < nf; f++) {
+      s += `<circle cx="${wallX + 5}" cy="${my(0) - groupH / 2 + f * sPx}" r="3.5" fill="#37474f"/>`;
     }
-    s += `<text x="${wallX + 16}" y="${my(0) - plateH / 2 - 8}" font-size="11" fill="#546e7a">${inputs.anclaje.n}×2 pernos · s=${inputs.anclaje.s} mm</text>`;
+    s += `<text x="${wallX + 16}" y="${my(0) - plateH / 2 - 8}" font-size="11" fill="#546e7a">${nf}×${inputs.anclaje.n} pernos · s=${inputs.anclaje.s} mm</text>`;
 
     // Tramos como líneas gruesas + etiquetas + conexiones
     model.segs.forEach((seg, i) => {
@@ -1017,7 +1068,7 @@ const Sketch = {
       const len = Math.hypot(x2 - x1, y2 - y1) || 1;
       const px = -(y2 - y1) / len, py = (x2 - x1) / len;
       s += `<text x="${mxx + px * 20}" y="${myy + py * 20}" font-size="12" fill="#546e7a" text-anchor="middle">T${i + 1} · ${(seg.L / 10).toFixed(0)} cm${seg.angle ? ` · ${seg.angle}°` : ""}</text>`;
-      if (i > 0) s += this.jointSymbol(seg.joint, x1, y1);
+      if (i > 0 || seg.joint !== "empotramiento") s += this.jointSymbol(seg.joint, x1, y1);
     });
 
     // Apoyo en el extremo final
@@ -1122,6 +1173,8 @@ if (typeof document !== "undefined") {
   const els = {
     pesoTV: $("in-peso-tv"), pesoSoporte: $("in-peso-soporte"), tvSeg: $("in-tv-seg"),
     segments: $("segments"), addSeg: $("btn-add-seg"), support: $("in-support"),
+    filas: $("in-filas"), wallJoint: $("in-wall-joint"),
+    modeSimple: $("mode-simple"), modeFull: $("mode-full"),
     material: $("in-material"), fs: $("in-fs"),
     flechaLim: $("in-flecha-lim"), flechaAbs: $("in-flecha-abs"), fieldFlechaAbs: $("field-flecha-abs"),
     sepPernos: $("in-sep-pernos"), nPernos: $("in-n-pernos"), muro: $("in-muro"),
@@ -1163,12 +1216,11 @@ if (typeof document !== "undefined") {
           <strong>Tramo ${i + 1}</strong>
           ${state.segments.length > 1 ? `<button type="button" id="seg${i}-del">✕ Quitar</button>` : ""}
         </div>
-        <div class="field">
-          <label for="seg${i}-joint">Conexión con ${i === 0 ? "la pared" : `el tramo ${i}`}</label>
-          ${i === 0
-            ? `<select id="seg${i}-joint" disabled><option>Empotramiento a pared (placa anclada)</option></select>`
-            : `<select id="seg${i}-joint">${jointOpts}</select>`}
-        </div>
+        ${i === 0 ? "" : `
+        <div class="field adv">
+          <label for="seg${i}-joint">Conexión con el tramo ${i}</label>
+          <select id="seg${i}-joint">${jointOpts}</select>
+        </div>`}
         <div class="seg-body">
           <div>
             <div class="row2">
@@ -1176,7 +1228,7 @@ if (typeof document !== "undefined") {
                 <label for="seg${i}-L">Longitud (cm)</label>
                 <input type="number" id="seg${i}-L" value="${s.L / 10}" min="1" step="1">
               </div>
-              <div class="field">
+              <div class="field adv">
                 <label for="seg${i}-ang">Ángulo (°)</label>
                 <input type="number" id="seg${i}-ang" value="${s.angle}" min="-180" max="180" step="5"
                   title="0 = horizontal · −90 = hacia el suelo · +90 = hacia arriba">
@@ -1287,10 +1339,17 @@ if (typeof document !== "undefined") {
       pesoSoporte: parseFloat(els.pesoSoporte.value),
       tvSeg: parseInt(els.tvSeg.value, 10),
       material: els.material.value,
-      segments: state.segments.map(s => ({ L: s.L, angle: s.angle, tipo: s.tipo, dims: segDims(s), joint: s.joint })),
+      segments: state.segments.map((s, i) => ({
+        L: s.L, angle: s.angle, tipo: s.tipo, dims: segDims(s),
+        joint: i === 0 ? els.wallJoint.value : s.joint,
+      })),
       endSupport: els.support.value,
       muro: els.muro.value,
-      anclaje: { s: parseFloat(els.sepPernos.value), n: parseInt(els.nPernos.value, 10) },
+      anclaje: {
+        s: parseFloat(els.sepPernos.value),
+        n: parseInt(els.nPernos.value, 10),
+        nf: parseInt(els.filas.value, 10),
+      },
     };
   }
   function getCriteria() {
@@ -1355,7 +1414,7 @@ if (typeof document !== "undefined") {
       els.anchorReco.className = "ok";
       els.anchorReco.innerHTML =
         `🔩 <strong>Anclaje recomendado</strong> — muro de ${reco.wall.nombre.toLowerCase()}:` +
-        `<div class="big">${reco.anchor.taco} + tornillo ${reco.anchor.tornillo} (×${2 * inputs.anclaje.n})</div>` +
+        `<div class="big">${reco.anchor.taco} + tornillo ${reco.anchor.tornillo} (×${inputs.anclaje.nf * inputs.anclaje.n})</div>` +
         `Demanda por perno: ${fmt(reco.Td, 1)} kgf de arranque y ${fmt(reco.Vd, 1)} kgf de cortante · ` +
         `utilización del anclaje ${fmt(reco.util * 100, 0)} %` +
         `<div class="note">Capacidades orientativas de servicio; confirma con la ficha técnica del fabricante del taco.` +
@@ -1449,6 +1508,21 @@ if (typeof document !== "undefined") {
   els.muro.innerHTML = Object.entries(WALLS)
     .map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join("");
   els.muro.value = "macizo";
+  els.wallJoint.innerHTML = Object.entries(JOINTS)
+    .map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join("");
+  els.wallJoint.value = "empotramiento";
+
+  // Conmutador de vista simple / completa (la simple oculta los campos .adv,
+  // que conservan sus valores)
+  function setMode(simple) {
+    document.body.classList.toggle("simple", simple);
+    els.modeSimple.classList.toggle("active", simple);
+    els.modeFull.classList.toggle("active", !simple);
+  }
+  els.modeSimple.addEventListener("click", () => setMode(true));
+  els.modeFull.addEventListener("click", () => setMode(false));
+  setMode(true);
+
   renderLegend();
   renderSegments();
   els.addSeg.addEventListener("click", () => {
@@ -1467,7 +1541,8 @@ if (typeof document !== "undefined") {
     recalc();
   });
   for (const el of [els.pesoTV, els.pesoSoporte, els.material, els.support, els.fs,
-                    els.flechaLim, els.flechaAbs, els.sepPernos, els.nPernos, els.muro]) {
+                    els.flechaLim, els.flechaAbs, els.sepPernos, els.nPernos, els.muro,
+                    els.filas, els.wallJoint]) {
     el.addEventListener("input", recalc);
     el.addEventListener("change", recalc);
   }
