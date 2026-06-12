@@ -195,6 +195,35 @@
   #input-error.visible { display: block; }
 
   #sketch-svg { width: 100%; height: auto; display: block; }
+  #view-toggle {
+    float: right;
+    display: inline-flex;
+    border: 1px solid var(--c-accent);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  #view-toggle button {
+    border: none;
+    background: #fff;
+    color: var(--c-accent);
+    padding: 2px 14px;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+  #view-toggle button.active { background: var(--c-accent); color: #fff; font-weight: 600; }
+  #sketch-3d { width: 100%; height: 440px; border-radius: 8px; overflow: hidden; background: #dde6ed; }
+  #sketch-3d canvas { display: block; }
+  #three-error {
+    background: #fdecea;
+    color: var(--c-bad);
+    border: 1px solid #f5c6c3;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    margin-top: 8px;
+  }
+  #hint-3d { font-size: 0.78rem; color: var(--c-muted); margin: 6px 0 0; }
+  .plan-slider label span { float: right; color: var(--c-accent); font-weight: 600; }
   #joint-legend {
     list-style: none;
     margin: 10px 0 0;
@@ -410,8 +439,19 @@
 
   <!-- ===================== SKETCH ===================== -->
   <section class="panel" id="panel-sketch">
-    <h2>Esquema de la estructura</h2>
+    <h2>Esquema de la estructura
+      <span id="view-toggle">
+        <button id="view-2d" type="button" class="active">2D</button>
+        <button id="view-3d" type="button">3D</button>
+      </span>
+    </h2>
     <svg id="sketch-svg" viewBox="0 0 800 460" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="sketch-3d" hidden></div>
+    <div id="three-error" hidden>
+      No se pudo cargar Three.js desde el CDN (¿sin conexión?). La vista 3D necesita internet; la 2D sigue disponible.
+    </div>
+    <p id="hint-3d" hidden>Arrastra para orbitar · rueda para zoom · botón derecho para desplazar.
+      Pliega el brazo con los sliders «Giro en planta» de los tramos con conexión pivote (vista completa).</p>
     <ul id="joint-legend"></ul>
   </section>
 
@@ -429,7 +469,9 @@
   <details>
     <summary>Hipótesis de cálculo</summary>
     <ul>
-      <li>Pórtico plano (2D) resuelto por el método matricial de rigidez con elementos viga-columna de Euler-Bernoulli; cada tramo se subdivide en 6 elementos. Caso más desfavorable: brazo totalmente extendido, todo en el plano vertical.</li>
+      <li>Pórtico espacial (3D) resuelto por el método matricial de rigidez con elementos viga-columna de Euler-Bernoulli de 12 GDL; cada tramo se subdivide en 6 elementos. Los tramos pueden tener ángulo en el plano vertical y giro en planta en los pivotes (brazo plegado).</li>
+      <li>Tensión combinada de von Mises: σ = |N|/A + |M<sub>z</sub>|/W + |M<sub>y</sub>|/W<sub>y</sub> y τ = T/W<sub>t</sub> → σ<sub>eq</sub> = √(σ²+3τ²) ≤ f<sub>y</sub>/FS. Torsión con J de Bredt en tubos y Σl·t³/3 en secciones abiertas (pletina/angular, muy débiles a torsión). Sin alabeo restringido ni concentraciones de tensión.</li>
+      <li>El pivote de eje vertical se modela rígido: las cargas gravitatorias no generan momento alrededor de ejes verticales y el ángulo de plegado lo fija el usuario (fricción/tope del codo).</li>
       <li>Carga puntual P = (peso TV + soporte)·g en el nudo elegido, más el peso propio de cada tramo aplicado como cargas nodales equivalentes.</li>
       <li>Tensión combinada por tramo: σ = |N|/A + |M|<sub>máx</sub>/W ≤ f<sub>y</sub>/FS. En tramos comprimidos se comprueba además el pandeo de Euler con longitud de pandeo igual a la del tramo (k = 1): |N| ≤ N<sub>cr</sub>/FS = π²EI/(FS·L²).</li>
       <li>Flecha: desplazamiento vertical del nudo de la TV ≤ límite, referido a la distancia horizontal pared–TV (o a la longitud total si la TV está en la pared).</li>
@@ -464,11 +506,11 @@ const SUB = 6;      // subelementos por tramo (malla del solver)
  * 1. MATERIALES — E [MPa], fy [MPa], densidad [kg/m³]
  * =================================================================== */
 const MATERIALS = {
-  S235:    { nombre: "Acero S235",       E: 210000, fy: 235, densidad: 7850 },
-  S275:    { nombre: "Acero S275",       E: 210000, fy: 275, densidad: 7850 },
-  AL6061:  { nombre: "Aluminio 6061-T6", E: 68900,  fy: 276, densidad: 2700 },
-  AL6063:  { nombre: "Aluminio 6063-T5", E: 68900,  fy: 145, densidad: 2700 },
-  INOX304: { nombre: "Inox 304",         E: 193000, fy: 215, densidad: 7900 },
+  S235:    { nombre: "Acero S235",       E: 210000, G: 81000, fy: 235, densidad: 7850 },
+  S275:    { nombre: "Acero S275",       E: 210000, G: 81000, fy: 275, densidad: 7850 },
+  AL6061:  { nombre: "Aluminio 6061-T6", E: 68900,  G: 26200, fy: 276, densidad: 2700 },
+  AL6063:  { nombre: "Aluminio 6063-T5", E: 68900,  G: 26200, fy: 145, densidad: 2700 },
+  INOX304: { nombre: "Inox 304",         E: 193000, G: 74000, fy: 215, densidad: 7900 },
 };
 
 /* =====================================================================
@@ -481,22 +523,26 @@ const JOINTS = {
   empotramiento: {
     nombre: "Empotramiento (rígido)",
     transmiteMomento: true,
+    release: null,
     desc: "Unión soldada o atornillada rígida: transmite momento, axil y cortante. Es la unión a la pared y la opción por defecto entre tramos fijos.",
   },
   pivote: {
     nombre: "Pivote de eje vertical (codo)",
     transmiteMomento: true,
-    desc: "Articulación de plegado típica de los brazos de TV: gira en planta para extender/recoger, pero transmite la flexión vertical (rígido en este modelo plano).",
+    release: null, // rígido: la gravedad no genera momento de eje vertical y el ángulo lo fija el usuario
+    desc: "Articulación de plegado típica de los brazos de TV: permite girar el tramo en planta (slider \"giro en planta\") y transmite la flexión vertical.",
   },
   bisagra: {
     nombre: "Bisagra de eje horizontal",
     transmiteMomento: false,
+    release: [5], // libera rz local (flexión en el plano vertical)
     desc: "Libera el momento en el plano vertical. Solo es estable si otros apoyos lo permiten (p. ej. una pata al suelo); en voladizo puro es un mecanismo.",
   },
   rotula: {
     nombre: "Rótula esférica",
     transmiteMomento: false,
-    desc: "Libera todos los giros (en el plano equivale a una bisagra). Útil solo combinada con apoyos o tirantes.",
+    release: [4, 5], // libera ambas flexiones (la torsión se mantiene acoplada)
+    desc: "Libera los giros de flexión en ambos planos. Útil solo combinada con apoyos o tirantes.",
   },
 };
 
@@ -517,16 +563,19 @@ const SUPPORTS = {
 
 /* =====================================================================
  * 3. TIPOS DE PERFIL
- * props(dims) → { A [mm²], I [mm⁴], W [mm³], hDraw [mm] } para flexión en
- * el plano vertical. Canto (dimensión mayor) en el plano de flexión.
+ * props(dims) → { A [mm²], I, Iy [mm⁴], W, Wy [mm³], J [mm⁴], Wt [mm³],
+ * hDraw, bDraw [mm] }. I/W: flexión en el plano vertical (eje fuerte,
+ * canto h). Iy/Wy: flexión de eje vertical (aparece al plegar en planta).
+ * J/Wt: torsión (Bredt en tubos; Σl·t³/3 en secciones abiertas —
+ * pletina y angular son muy débiles a torsión).
  * Comprobación manual (tubo rect 40x20x2): A = 224 mm², I = 44 459 mm⁴,
- * W = 2 223 mm³ (tablas con radios: I ≈ 4.05·10⁴).
+ * W = 2 223 mm³, J(Bredt) = 4·(38·18)²·2/(2·(38+18)) ≈ 33 416 mm⁴.
  * =================================================================== */
 const PROFILE_TYPES = {
   rect: {
     nombre: "Tubo rectangular",
     params: [
-      { key: "h", label: "Canto h (en el plano de flexión)" },
+      { key: "h", label: "Canto h (vertical)" },
       { key: "b", label: "Ancho b" },
       { key: "t", label: "Espesor t" },
     ],
@@ -535,7 +584,10 @@ const PROFILE_TYPES = {
       const bi = d.b - 2 * d.t, hi = d.h - 2 * d.t;
       const A = d.b * d.h - bi * hi;
       const I = (d.b * d.h ** 3 - bi * hi ** 3) / 12;
-      return { A, I, W: (2 * I) / d.h, hDraw: d.h };
+      const Iy = (d.h * d.b ** 3 - hi * bi ** 3) / 12;
+      const am = (d.b - d.t) * (d.h - d.t); // área media (Bredt)
+      const J = 4 * am * am * d.t / (2 * ((d.b - d.t) + (d.h - d.t)));
+      return { A, I, W: 2 * I / d.h, Iy, Wy: 2 * Iy / d.b, J, Wt: 2 * am * d.t, hDraw: d.h, bDraw: d.b };
     },
   },
   cuadrado: {
@@ -560,11 +612,12 @@ const PROFILE_TYPES = {
       const di = d.D - 2 * d.t;
       const A = Math.PI * (d.D ** 2 - di ** 2) / 4;
       const I = Math.PI * (d.D ** 4 - di ** 4) / 64;
-      return { A, I, W: (2 * I) / d.D, hDraw: d.D };
+      const J = 2 * I;
+      return { A, I, W: 2 * I / d.D, Iy: I, Wy: 2 * I / d.D, J, Wt: 2 * J / d.D, hDraw: d.D, bDraw: d.D };
     },
   },
   pletina: {
-    nombre: "Pletina (canto en el plano)",
+    nombre: "Pletina (canto vertical)",
     params: [
       { key: "h", label: "Canto h" },
       { key: "b", label: "Espesor b" },
@@ -573,14 +626,16 @@ const PROFILE_TYPES = {
     props(d) {
       const A = d.b * d.h;
       const I = d.b * d.h ** 3 / 12;
-      return { A, I, W: d.b * d.h ** 2 / 6, hDraw: d.h };
+      const Iy = d.h * d.b ** 3 / 12;
+      const J = d.h * d.b ** 3 / 3; // sección abierta delgada
+      return { A, I, W: d.b * d.h ** 2 / 6, Iy, Wy: d.h * d.b ** 2 / 6, J, Wt: J / d.b, hDraw: d.h, bDraw: d.b };
     },
   },
   angular: {
     nombre: "Angular en L",
     params: [
-      { key: "h", label: "Ala en el plano h" },
-      { key: "b", label: "Ala perpendicular b" },
+      { key: "h", label: "Ala vertical h" },
+      { key: "b", label: "Ala horizontal b" },
       { key: "t", label: "Espesor t" },
     ],
     valida(d) { return d.t < Math.min(d.b, d.h); },
@@ -593,7 +648,14 @@ const PROFILE_TYPES = {
       const I = d.t * d.h ** 3 / 12 + A1 * (y1 - yc) ** 2
               + (d.b - d.t) * d.t ** 3 / 12 + A2 * (yc - y2) ** 2;
       const c = Math.max(yc, d.h - yc);
-      return { A, I, W: I / c, hDraw: d.h };
+      // Eje vertical: ala vertical en x∈[0,t], ala horizontal en x∈[0,b]
+      const x1 = d.t / 2, x2 = d.t + (d.b - d.t) / 2;
+      const xc = (A1 * x1 + A2 * x2) / A;
+      const Iy = d.h * d.t ** 3 / 12 + A1 * (x1 - xc) ** 2
+               + d.t * (d.b - d.t) ** 3 / 12 + A2 * (x2 - xc) ** 2;
+      const cx = Math.max(xc, d.b - xc);
+      const J = (d.h + d.b - d.t) * d.t ** 3 / 3; // sección abierta
+      return { A, I, W: I / c, Iy, Wy: Iy / cx, J, Wt: J / d.t, hDraw: d.h, bDraw: d.b };
     },
   },
 };
@@ -643,32 +705,57 @@ const CATALOG = {
 };
 
 /* =====================================================================
- * 5. MOTOR DE CÁLCULO — pórtico plano por rigidez matricial
+ * 5. MOTOR DE CÁLCULO — pórtico ESPACIAL (3D) por rigidez matricial
  * (funciones puras, sin DOM)
+ *
+ * Elementos viga-columna 3D de 12 GDL (3 traslaciones + 3 giros por
+ * nudo). Cada tramo puede tener ángulo de elevación (plano vertical) y
+ * giro en planta acumulado en los pivotes. La torsión (GJ) y la flexión
+ * de eje débil (Iy) entran en juego al plegar el brazo en planta.
+ * Ejes globales: x hacia la habitación, y ARRIBA, z lateral.
+ * Liberaciones de momento (bisagra/rótula) por condensación estática.
+ * Los pivotes de eje vertical se modelan rígidos: las cargas
+ * gravitatorias no generan momento alrededor de ejes verticales, y el
+ * ángulo de plegado lo fija el usuario.
  * =================================================================== */
+
+const vcross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const vnorm = (a) => { const m = Math.hypot(...a); return [a[0] / m, a[1] / m, a[2] / m]; };
+
+/** Ejes locales del elemento: ex a lo largo, ez horizontal transversal, ey ⊥. */
+function elemAxes(dir) {
+  const ex = dir;
+  const ez = Math.abs(ex[1]) > 0.999 ? [0, 0, 1] : vnorm([-ex[2], 0, ex[0]]);
+  const ey = vcross(ez, ex);
+  return { ex, ey, ez };
+}
 
 /** Construye el modelo: malla de nudos/elementos a partir de los tramos. */
 function buildModel(inputs) {
   const material = MATERIALS[inputs.material];
-  const nodes = [{ x: 0, y: 0 }];
+  const nodes = [{ x: 0, y: 0, z: 0 }];
   const elements = [];
-  let cur = { x: 0, y: 0 };
+  let cur = { x: 0, y: 0, z: 0 };
+  let psi = 0; // rumbo en planta acumulado (rad)
   inputs.segments.forEach((s, si) => {
     const props = PROFILE_TYPES[s.tipo].props(s.dims);
+    psi += (s.planAngle || 0) * Math.PI / 180;
     const a = (s.angle || 0) * Math.PI / 180;
-    const c = Math.cos(a), sn = Math.sin(a);
+    const dir = [Math.cos(a) * Math.cos(psi), Math.sin(a), Math.cos(a) * Math.sin(psi)];
     const Le = s.L / SUB;
     for (let j = 0; j < SUB; j++) {
       const n1 = nodes.length - 1;
-      cur = { x: cur.x + c * Le, y: cur.y + sn * Le };
+      cur = { x: cur.x + dir[0] * Le, y: cur.y + dir[1] * Le, z: cur.z + dir[2] * Le };
       nodes.push({ ...cur });
       elements.push({
-        n1, n2: n1 + 1, L: Le, c, s: sn, segIdx: si,
-        E: material.E, A: props.A, I: props.I, W: props.W, hDraw: props.hDraw,
+        n1, n2: n1 + 1, L: Le, dir, segIdx: si,
+        E: material.E, Gm: material.G, props,
         q: props.A * 1e-6 * material.densidad * G / 1000, // N/mm
-        // Liberación de momento al inicio del tramo (también en la unión
-        // placa–tramo 1 si el usuario la elige articulada)
-        hinge: j === 0 && !JOINTS[s.joint].transmiteMomento,
+        // Liberación de giros al inicio del tramo (índices GDL locales):
+        // bisagra → flexión en el plano vertical (rz); rótula → ambas
+        // flexiones (ry, rz). La torsión (rx) se mantiene acoplada para
+        // no introducir el modo de giro libre del propio tubo.
+        release: j === 0 ? JOINTS[s.joint].release : null,
       });
     }
   });
@@ -683,58 +770,87 @@ function buildModel(inputs) {
   };
 }
 
-/** Rigidez local 6×6 del elemento viga-columna (con rótula opcional en el nudo inicial). */
+/** Rigidez local 12×12 del elemento viga-columna 3D (Euler-Bernoulli). */
 function kLocal(e) {
-  const { E, A, I, L } = e;
-  const k = Array.from({ length: 6 }, () => new Float64Array(6));
-  const ea = E * A / L;
-  k[0][0] = ea; k[0][3] = -ea; k[3][0] = -ea; k[3][3] = ea;
-  if (!e.hinge) {
-    const a = 12 * E * I / L ** 3, b = 6 * E * I / L ** 2;
-    const c4 = 4 * E * I / L, c2 = 2 * E * I / L;
-    k[1][1] = a;  k[1][2] = b;  k[1][4] = -a; k[1][5] = b;
-    k[2][1] = b;  k[2][2] = c4; k[2][4] = -b; k[2][5] = c2;
-    k[4][1] = -a; k[4][2] = -b; k[4][4] = a;  k[4][5] = -b;
-    k[5][1] = b;  k[5][2] = c2; k[5][4] = -b; k[5][5] = c4;
-  } else {
-    // Momento liberado en el nudo 1 (rigidez condensada)
-    const a = 3 * E * I / L ** 3;
-    k[1][1] = a;      k[1][4] = -a;     k[1][5] = a * L;
-    k[4][1] = -a;     k[4][4] = a;      k[4][5] = -a * L;
-    k[5][1] = a * L;  k[5][4] = -a * L; k[5][5] = a * L * L;
+  const { E, Gm, L } = e;
+  const { A, I, Iy, J } = e.props; // I = Iz (flexión en el plano vertical)
+  const k = Array.from({ length: 12 }, () => new Float64Array(12));
+  const set = (i, j, v) => { k[i][j] = v; k[j][i] = v; };
+  set(0, 0, E * A / L); set(0, 6, -E * A / L); set(6, 6, E * A / L);
+  set(3, 3, Gm * J / L); set(3, 9, -Gm * J / L); set(9, 9, Gm * J / L);
+  // Flexión alrededor de ez local (Iz): uy=1/7, rz=5/11
+  let a = 12 * E * I / L ** 3, b = 6 * E * I / L ** 2, c = 4 * E * I / L, d = 2 * E * I / L;
+  set(1, 1, a); set(1, 5, b); set(1, 7, -a); set(1, 11, b);
+  set(5, 5, c); set(5, 7, -b); set(5, 11, d);
+  set(7, 7, a); set(7, 11, -b); set(11, 11, c);
+  // Flexión alrededor de ey local (Iy): uz=2/8, ry=4/10 (signos opuestos)
+  a = 12 * E * Iy / L ** 3; b = 6 * E * Iy / L ** 2; c = 4 * E * Iy / L; d = 2 * E * Iy / L;
+  set(2, 2, a); set(2, 4, -b); set(2, 8, -a); set(2, 10, -b);
+  set(4, 4, c); set(4, 8, b); set(4, 10, d);
+  set(8, 8, a); set(8, 10, b); set(10, 10, c);
+  return e.release && e.release.length ? condense(k, e.release) : k;
+}
+
+/** Condensación estática de los GDL liberados: k_aa − k_ar·k_rr⁻¹·k_ra. */
+function condense(k, rel) {
+  const n = 12;
+  const out = Array.from({ length: n }, (_, i) => Float64Array.from(k[i]));
+  const r = rel.length;
+  // k_rr⁻¹ por eliminación (matriz pequeña, 1–2 GDL)
+  const krr = rel.map(i => rel.map(j => k[i][j]));
+  const inv = krr.map((row, i) => row.map((_, j) => (i === j ? 1 : 0)));
+  for (let c0 = 0; c0 < r; c0++) {
+    const p = krr[c0][c0];
+    for (let j = 0; j < r; j++) { krr[c0][j] /= p; inv[c0][j] /= p; }
+    for (let i = 0; i < r; i++) if (i !== c0) {
+      const f = krr[i][c0];
+      for (let j = 0; j < r; j++) { krr[i][j] -= f * krr[c0][j]; inv[i][j] -= f * inv[c0][j]; }
+    }
   }
-  return k;
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++) {
+      let corr = 0;
+      for (let p = 0; p < r; p++)
+        for (let q = 0; q < r; q++) corr += k[i][rel[p]] * inv[p][q] * k[rel[q]][j];
+      out[i][j] = k[i][j] - corr;
+    }
+  for (const i of rel) { out[i].fill(0); for (let j = 0; j < n; j++) out[j][i] = 0; }
+  return out;
 }
 
-/** Transforma un vector global del elemento a locales (u) o fuerzas locales a globales (uso con traspuesta). */
+/** Vector global del elemento (12) → locales. */
 function toLocal(e, v) {
-  const { c, s } = e;
-  return [
-    c * v[0] + s * v[1], -s * v[0] + c * v[1], v[2],
-    c * v[3] + s * v[4], -s * v[3] + c * v[4], v[5],
-  ];
+  const { ex, ey, ez } = elemAxes(e.dir);
+  const out = new Array(12);
+  for (let b0 = 0; b0 < 12; b0 += 3) {
+    out[b0]     = ex[0] * v[b0] + ex[1] * v[b0 + 1] + ex[2] * v[b0 + 2];
+    out[b0 + 1] = ey[0] * v[b0] + ey[1] * v[b0 + 1] + ey[2] * v[b0 + 2];
+    out[b0 + 2] = ez[0] * v[b0] + ez[1] * v[b0 + 1] + ez[2] * v[b0 + 2];
+  }
+  return out;
 }
 
-/** k global = Tᵀ·k_local·T */
+/** k global = Tᵀ·k_local·T (T por bloques 3×3 de ejes locales). */
 function kGlobal(e) {
-  const kl = kLocal(e), { c, s } = e;
-  // T por bloques [c s 0; -s c 0; 0 0 1]
-  const T = [
-    [c, s, 0, 0, 0, 0], [-s, c, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0],
-    [0, 0, 0, c, s, 0], [0, 0, 0, -s, c, 0], [0, 0, 0, 0, 0, 1],
-  ];
-  const kt = Array.from({ length: 6 }, () => new Float64Array(6)); // kl·T
-  for (let i = 0; i < 6; i++)
-    for (let j = 0; j < 6; j++) {
+  const kl = kLocal(e);
+  const { ex, ey, ez } = elemAxes(e.dir);
+  const R = [ex, ey, ez]; // filas
+  const T = Array.from({ length: 12 }, () => new Float64Array(12));
+  for (let b0 = 0; b0 < 12; b0 += 3)
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++) T[b0 + i][b0 + j] = R[i][j];
+  const kt = Array.from({ length: 12 }, () => new Float64Array(12));
+  for (let i = 0; i < 12; i++)
+    for (let j = 0; j < 12; j++) {
       let v = 0;
-      for (let m = 0; m < 6; m++) v += kl[i][m] * T[m][j];
+      for (let m = 0; m < 12; m++) v += kl[i][m] * T[m][j];
       kt[i][j] = v;
     }
-  const kg = Array.from({ length: 6 }, () => new Float64Array(6)); // Tᵀ·kt
-  for (let i = 0; i < 6; i++)
-    for (let j = 0; j < 6; j++) {
+  const kg = Array.from({ length: 12 }, () => new Float64Array(12));
+  for (let i = 0; i < 12; i++)
+    for (let j = 0; j < 12; j++) {
       let v = 0;
-      for (let m = 0; m < 6; m++) v += T[m][i] * kt[m][j];
+      for (let m = 0; m < 12; m++) v += T[m][i] * kt[m][j];
       kg[i][j] = v;
     }
   return kg;
@@ -767,28 +883,30 @@ function solve(Am, b) {
   return x;
 }
 
-/** Análisis completo: desplazamientos, reacciones, tensiones, pandeo. */
+/** Análisis completo: desplazamientos, reacciones, tensiones (von Mises con torsión), pandeo. */
 function analyze(model, criteria) {
-  const nn = model.nodes.length, nd = 3 * nn;
+  const nn = model.nodes.length, nd = 6 * nn;
   const K = Array.from({ length: nd }, () => new Float64Array(nd));
   const F = new Float64Array(nd);
 
   for (const e of model.elements) {
     const kg = kGlobal(e);
-    const map = [3 * e.n1, 3 * e.n1 + 1, 3 * e.n1 + 2, 3 * e.n2, 3 * e.n2 + 1, 3 * e.n2 + 2];
-    for (let i = 0; i < 6; i++)
-      for (let j = 0; j < 6; j++) K[map[i]][map[j]] += kg[i][j];
+    const map = [];
+    for (let i = 0; i < 6; i++) map.push(6 * e.n1 + i);
+    for (let i = 0; i < 6; i++) map.push(6 * e.n2 + i);
+    for (let i = 0; i < 12; i++)
+      for (let j = 0; j < 12; j++) K[map[i]][map[j]] += kg[i][j];
     const w = e.q * e.L; // peso del subelemento → cargas nodales
-    F[3 * e.n1 + 1] -= w / 2;
-    F[3 * e.n2 + 1] -= w / 2;
+    F[6 * e.n1 + 1] -= w / 2;
+    F[6 * e.n2 + 1] -= w / 2;
   }
-  F[3 * model.tvNode + 1] -= model.tipLoad;
+  F[6 * model.tvNode + 1] -= model.tipLoad;
 
   // Apoyos: empotramiento en la pared (nudo 0) + apoyo opcional en el extremo
-  const fixed = new Set([0, 1, 2]);
+  const fixed = new Set([0, 1, 2, 3, 4, 5]);
   const endN = nn - 1;
-  if (model.support === "deslizante") fixed.add(3 * endN + 1);
-  if (model.support === "articulado") { fixed.add(3 * endN); fixed.add(3 * endN + 1); }
+  if (model.support === "deslizante") fixed.add(6 * endN + 1);
+  if (model.support === "articulado") { fixed.add(6 * endN); fixed.add(6 * endN + 1); fixed.add(6 * endN + 2); }
 
   const free = [];
   for (let i = 0; i < nd; i++) if (!fixed.has(i)) free.push(i);
@@ -807,40 +925,51 @@ function analyze(model, criteria) {
   const u = new Float64Array(nd);
   free.forEach((dof, i) => { u[dof] = xr[i]; });
 
-  // Reacciones en la pared (nudo 0): R = K·u − F
-  const R = [0, 1, 2].map(i => {
+  // Reacciones en la pared (nudo 0): R = K·u − F  → [Fx,Fy,Fz,Mx,My,Mz]
+  const R = [0, 1, 2, 3, 4, 5].map(i => {
     let v = -F[i];
     for (let j = 0; j < nd; j++) v += K[i][j] * u[j];
     return v;
   });
-  const M = Math.abs(R[2]);           // N·mm
-  const V = Math.abs(R[1]);           // N
-  const pull = Math.max(0, -R[0]);    // tracción axial sobre los anclajes, N
+  const M = Math.abs(R[5]);                      // flexión de eje horizontal (filas)
+  const My = Math.abs(R[4]);                     // flexión de eje vertical (columnas)
+  const Mx = Math.abs(R[3]);                     // torsor normal a la placa
+  const V = Math.hypot(R[1], R[2]);              // cortante resultante en el plano de la placa
+  const pull = Math.max(0, -R[0]);               // tracción axial sobre los anclajes, N
 
   // Esfuerzos por elemento → comprobaciones por tramo
-  const segChecks = model.segs.map(() => ({ sigma: 0, Mmax: 0, Nmin: 0, Nmax: 0 }));
+  const segChecks = model.segs.map(() => ({ sigma: 0, Mmax: 0, Mtor: 0, Nmin: 0, Nmax: 0 }));
   for (const e of model.elements) {
-    const ue = [u[3 * e.n1], u[3 * e.n1 + 1], u[3 * e.n1 + 2], u[3 * e.n2], u[3 * e.n2 + 1], u[3 * e.n2 + 2]];
+    const ue = [];
+    for (let i = 0; i < 6; i++) ue.push(u[6 * e.n1 + i]);
+    for (let i = 0; i < 6; i++) ue.push(u[6 * e.n2 + i]);
     const ul = toLocal(e, ue);
     const kl = kLocal(e);
-    const fl = new Float64Array(6);
-    for (let i = 0; i < 6; i++)
-      for (let j = 0; j < 6; j++) fl[i] += kl[i][j] * ul[j];
-    const N = fl[3];                              // + tracción, − compresión
-    const Mmax = Math.max(Math.abs(fl[2]), Math.abs(fl[5]));
+    const fl = new Float64Array(12);
+    for (let i = 0; i < 12; i++)
+      for (let j = 0; j < 12; j++) fl[i] += kl[i][j] * ul[j];
+    const N = fl[6];                                            // + tracción, − compresión
+    const Mz = Math.max(Math.abs(fl[5]), Math.abs(fl[11]));     // flexión eje fuerte
+    const Myl = Math.max(Math.abs(fl[4]), Math.abs(fl[10]));    // flexión eje débil
+    const Mt = Math.abs(fl[9]);                                 // torsor
+    const p = e.props;
+    const sigmaN = Math.abs(N) / p.A + Mz / p.W + Myl / p.Wy;
+    const tau = Mt / p.Wt;
+    const sigmaVM = Math.sqrt(sigmaN ** 2 + 3 * tau ** 2);      // von Mises
     const sc = segChecks[e.segIdx];
-    sc.Mmax = Math.max(sc.Mmax, Mmax);
+    sc.Mmax = Math.max(sc.Mmax, Mz);
+    sc.Mtor = Math.max(sc.Mtor, Mt);
     sc.Nmin = Math.min(sc.Nmin, N);
     sc.Nmax = Math.max(sc.Nmax, Math.abs(N));
-    sc.sigma = Math.max(sc.sigma, Math.abs(N) / e.A + Mmax / e.W);
+    sc.sigma = Math.max(sc.sigma, sigmaVM);
   }
   model.segs.forEach((s, i) => {
     const props = PROFILE_TYPES[s.tipo].props(s.dims);
     const sc = segChecks[i];
     sc.util = sc.sigma / sigmaAdm;
-    // Pandeo de Euler en tramos comprimidos (k = 1, longitud del tramo completo)
+    // Pandeo de Euler en tramos comprimidos (k = 1, inercia mínima)
     if (sc.Nmin < -1e-6) {
-      const Ncr = Math.PI ** 2 * model.material.E * props.I / s.L ** 2;
+      const Ncr = Math.PI ** 2 * model.material.E * Math.min(props.I, props.Iy) / s.L ** 2;
       sc.utilPandeo = Math.abs(sc.Nmin) / (Ncr / criteria.FS);
       sc.Ncr = Ncr;
     } else {
@@ -849,43 +978,63 @@ function analyze(model, criteria) {
   });
   const iCrit = segChecks.reduce((im, c, i) => (c.util > segChecks[im].util ? i : im), 0);
   const iPand = segChecks.reduce((im, c, i) => (c.utilPandeo > segChecks[im].utilPandeo ? i : im), 0);
+  const iTor = segChecks.reduce((im, c, i) => (c.Mtor > segChecks[im].Mtor ? i : im), 0);
   const sigma = segChecks[iCrit].sigma;
   const utilStress = sigma / sigmaAdm;
   const utilPandeo = segChecks[iPand].utilPandeo;
 
-  // Flecha: desplazamiento vertical del nudo de la TV
-  const delta = Math.abs(u[3 * model.tvNode + 1]);
-  const Lref = Math.max(Math.abs(model.nodes[model.tvNode].x), 1) > 1
-    ? Math.abs(model.nodes[model.tvNode].x) : Ltot;
+  // Flecha: desplazamiento vertical del nudo de la TV; referencia = vuelo en planta
+  const tvN = model.nodes[model.tvNode];
+  const delta = Math.abs(u[6 * model.tvNode + 1]);
+  const vuelo = Math.hypot(tvN.x, tvN.z);
+  const Lref = vuelo > 1 ? vuelo : Ltot;
   const deltaLim = criteria.deltaLimAbs != null ? criteria.deltaLimAbs : Lref / criteria.deltaLimRatio;
   const utilDefl = delta / deltaLim;
 
-  // Deformada para el sketch
-  const samples = model.nodes.map((n, i) => ({ x: n.x, y: n.y, ux: u[3 * i], uy: u[3 * i + 1] }));
+  // Deformada para los sketches
+  const samples = model.nodes.map((n, i) => ({
+    x: n.x, y: n.y, z: n.z,
+    ux: u[6 * i], uy: u[6 * i + 1], uz: u[6 * i + 2],
+  }));
 
   return {
     mecanismo: false,
-    Ltot, Lref, M, V, H: R[0], pull, delta, sigma, sigmaAdm, deltaLim,
-    utilStress, utilDefl, utilPandeo, iPand, segChecks, iCrit, pesoTotal, samples,
+    Ltot, Lref, M, My, Mx, V, H: R[0], pull, delta, sigma, sigmaAdm, deltaLim,
+    utilStress, utilDefl, utilPandeo, iPand, iTor, segChecks, iCrit, pesoTotal, samples,
     apto: utilStress <= 1 && utilDefl <= 1 && utilPandeo <= 1,
   };
 }
 
 /**
  * Fuerzas en los pernos de la placa de anclaje (modelo simplificado):
- * placa rígida con nf filas equiespaciadas s que gira sobre la fila
- * inferior; la tracción de cada fila es proporcional a su distancia
- * (T_max = M·d_max / (n·Σd_j²)). La tracción axial y el cortante se
- * reparten entre todos los pernos. Con nf=2 equivale a T = M/(s·n).
+ * malla rígida de nf filas × n columnas equiespaciadas s. La flexión de
+ * eje horizontal gira sobre la fila inferior (T = M·d_max/(n·Σd_j²)); la
+ * de eje vertical, sobre la columna extrema (análogo); el torsor se
+ * reparte de forma polar y el cortante/axil entre todos los pernos.
+ * Con nf=2 y sin plegado equivale al clásico T = M/(s·n).
  */
-function anchorForces({ M, V, pull = 0 }, { s, n, nf = 2 }) {
-  let sumd2 = 0;
-  for (let j = 1; j < nf; j++) sumd2 += (j * s) ** 2;
-  const dmax = (nf - 1) * s;
+function anchorForces({ M, My = 0, Mx = 0, V, pull = 0 }, { s, n, nf = 2 }) {
   const total = nf * n;
+  let sumdy2 = 0;
+  for (let j = 1; j < nf; j++) sumdy2 += (j * s) ** 2;
+  let T = M * (nf - 1) * s / (n * sumdy2) + pull / total;
+  if (n > 1) {
+    let sumdz2 = 0;
+    for (let j = 1; j < n; j++) sumdz2 += (j * s) ** 2;
+    T += My * (n - 1) * s / (nf * sumdz2);
+  }
+  // Torsor: reparto polar respecto al c.d.g. del grupo
+  let sumr2 = 0, rmax = 0;
+  const y0 = (nf - 1) * s / 2, z0 = (n - 1) * s / 2;
+  for (let f = 0; f < nf; f++)
+    for (let c = 0; c < n; c++) {
+      const r2 = (f * s - y0) ** 2 + (c * s - z0) ** 2;
+      sumr2 += r2;
+      rmax = Math.max(rmax, Math.sqrt(r2));
+    }
   return {
-    tensionPerno: M * dmax / (n * sumd2) + pull / total, // N
-    cortantePerno: V / total,                            // N
+    tensionPerno: T,                                          // N
+    cortantePerno: V / total + (sumr2 > 0 ? Mx * rmax / sumr2 : 0), // N
   };
 }
 
@@ -1104,7 +1253,215 @@ const Sketch = {
     s += `<polygon points="${tx - 6},${yArr + 30} ${tx + 6},${yArr + 30} ${tx},${yArr + 42}" fill="var(--c-bad)"/>`;
     s += `<text x="${tx + 12}" y="${yArr + 28}" font-size="13" fill="var(--c-bad)">P = ${(inputs.pesoTV + inputs.pesoSoporte).toFixed(1)} kg</text>`;
 
+    if (model.segs.some(sg => sg.planAngle)) {
+      s += `<text x="${wallX + 18}" y="425" font-size="12" fill="#ef6c00">brazo plegado en planta — proyección lateral; usa la vista 3D para la geometría real</text>`;
+    }
+
     svg.innerHTML = s;
+  },
+};
+
+/* =====================================================================
+ * 6b. VISTA 3D (Three.js, carga perezosa desde CDN)
+ * =================================================================== */
+function loadScript(src) {
+  return new Promise((ok, ko) => {
+    const sc = document.createElement("script");
+    sc.src = src; sc.onload = ok; sc.onerror = () => ko(new Error(src));
+    document.head.appendChild(sc);
+  });
+}
+async function ensureThree() {
+  if (window.THREE && window.THREE.OrbitControls) return;
+  await loadScript("https://unpkg.com/three@0.147.0/build/three.min.js");
+  await loadScript("https://unpkg.com/three@0.147.0/examples/js/controls/OrbitControls.js");
+}
+
+const Sketch3D = {
+  inited: false,
+  geomKey: "",
+
+  init(container) {
+    if (this.inited) return;
+    const T = window.THREE;
+    this.scene = new T.Scene();
+    this.scene.background = new T.Color(0xdde6ed);
+    this.camera = new T.PerspectiveCamera(45, container.clientWidth / 440, 1, 50000);
+    this.renderer = new T.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(container.clientWidth, 440);
+    this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+    container.appendChild(this.renderer.domElement);
+    this.scene.add(new T.AmbientLight(0xffffff, 0.65));
+    const dl = new T.DirectionalLight(0xffffff, 0.7);
+    dl.position.set(1500, 2500, 2000);
+    this.scene.add(dl);
+    this.group = new T.Group();
+    this.scene.add(this.group);
+    this.controls = new T.OrbitControls(this.camera, this.renderer.domElement);
+    // Mantener la cámara delante de la pared y a distancia razonable
+    this.controls.minAzimuthAngle = -1.25;
+    this.controls.maxAzimuthAngle = 1.25;
+    this.controls.maxPolarAngle = 1.52;
+    this.controls.addEventListener("change", () => this.renderer.render(this.scene, this.camera));
+    window.addEventListener("resize", () => {
+      if (container.offsetParent === null) return;
+      this.camera.aspect = container.clientWidth / 440;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(container.clientWidth, 440);
+      this.renderer.render(this.scene, this.camera);
+    });
+    this.inited = true;
+  },
+
+  /** Sección 2D del perfil para extruir (centrada, en mm). */
+  profileShape(tipo, d) {
+    const T = window.THREE;
+    const sh = new T.Shape();
+    const rectPath = (p, x, y, w, h) => {
+      p.moveTo(x, y); p.lineTo(x + w, y); p.lineTo(x + w, y + h); p.lineTo(x, y + h); p.closePath();
+    };
+    if (tipo === "rect" || tipo === "cuadrado") {
+      const b = tipo === "cuadrado" ? d.a : d.b, h = tipo === "cuadrado" ? d.a : d.h;
+      rectPath(sh, -b / 2, -h / 2, b, h);
+      const hole = new T.Path();
+      rectPath(hole, -b / 2 + d.t, -h / 2 + d.t, b - 2 * d.t, h - 2 * d.t);
+      sh.holes.push(hole);
+    } else if (tipo === "redondo") {
+      sh.absarc(0, 0, d.D / 2, 0, Math.PI * 2, false);
+      const hole = new T.Path();
+      hole.absarc(0, 0, d.D / 2 - d.t, 0, Math.PI * 2, true);
+      sh.holes.push(hole);
+    } else if (tipo === "pletina") {
+      rectPath(sh, -d.b / 2, -d.h / 2, d.b, d.h);
+    } else { // angular
+      sh.moveTo(-d.b / 2, -d.h / 2);
+      sh.lineTo(-d.b / 2 + d.t, -d.h / 2);
+      sh.lineTo(-d.b / 2 + d.t, d.h / 2 - 0);
+      sh.lineTo(-d.b / 2, d.h / 2);
+      sh.closePath();
+      // ala horizontal
+      const sh2 = new T.Shape();
+      rectPath(sh2, -d.b / 2 + d.t, -d.h / 2, d.b - d.t, d.t);
+      sh.userDataExtra = sh2; // se extruye aparte
+    }
+    return sh;
+  },
+
+  update(inputs, model, res) {
+    if (!this.inited) return;
+    const T = window.THREE;
+    // Limpiar grupo anterior
+    while (this.group.children.length) {
+      const o = this.group.children.pop();
+      o.traverse?.(c => { c.geometry?.dispose(); c.material?.dispose?.(); });
+      this.group.remove(o);
+    }
+    const armColorHex = res.mecanismo ? 0x6a1b9a : res.apto ? 0x2e7d32 : 0xc62828;
+    const matArm = new T.MeshStandardMaterial({ color: armColorHex, metalness: 0.45, roughness: 0.5 });
+    const matSteel = new T.MeshStandardMaterial({ color: 0x90a4ae, metalness: 0.6, roughness: 0.4 });
+    const nodes = model.nodes;
+    const last = nodes[nodes.length - 1];
+    const size = Math.max(...nodes.map(n => Math.hypot(n.x, n.y, n.z)), 400);
+
+    // Pared (plano x=0) y placa con pernos
+    const wall = new T.Mesh(new T.BoxGeometry(20, size * 1.6, size * 1.6),
+      new T.MeshStandardMaterial({ color: 0xeceff1, roughness: 0.9 }));
+    wall.position.set(-10, 0, 0);
+    this.group.add(wall);
+    const nf = inputs.anclaje.nf || 2, nb = inputs.anclaje.n, sB = inputs.anclaje.s;
+    const plate = new T.Mesh(new T.BoxGeometry(10, (nf - 1) * sB + 60, (nb - 1) * sB + 60), matSteel);
+    plate.position.set(5, 0, 0);
+    this.group.add(plate);
+    for (let f = 0; f < nf; f++)
+      for (let c = 0; c < nb; c++) {
+        const bolt = new T.Mesh(new T.CylinderGeometry(4, 4, 26, 12), new T.MeshStandardMaterial({ color: 0x37474f }));
+        bolt.rotation.z = Math.PI / 2;
+        bolt.position.set(8, (f - (nf - 1) / 2) * sB, (c - (nb - 1) / 2) * sB);
+        this.group.add(bolt);
+      }
+
+    // Suelo si hay apoyo
+    if (model.support !== "ninguno") {
+      const floor = new T.Mesh(new T.BoxGeometry(size * 1.8, 12, size * 1.8),
+        new T.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.9 }));
+      floor.position.set(size * 0.6, last.y - 6 - 14, 0);
+      this.group.add(floor);
+      const sup = model.support === "deslizante"
+        ? new T.Mesh(new T.SphereGeometry(12, 16, 12), matSteel)
+        : new T.Mesh(new T.ConeGeometry(14, 24, 4), matSteel);
+      sup.position.set(last.x, last.y - 12, last.z);
+      this.group.add(sup);
+    }
+
+    // Tramos extruidos con su sección real
+    model.segs.forEach((seg, i) => {
+      const e = model.elements[i * SUB];
+      const { ex, ey, ez } = elemAxes(e.dir);
+      const shape = this.profileShape(seg.tipo, seg.dims);
+      const parts = [shape];
+      if (shape.userDataExtra) parts.push(shape.userDataExtra);
+      const basis = new T.Matrix4().makeBasis(
+        new T.Vector3(...ez), new T.Vector3(...ey), new T.Vector3(...ex));
+      for (const p of parts) {
+        const geo = new T.ExtrudeGeometry(p, { depth: seg.L, bevelEnabled: false });
+        const mesh = new T.Mesh(geo, matArm);
+        mesh.applyMatrix4(basis);
+        mesh.position.set(nodes[i * SUB].x, nodes[i * SUB].y, nodes[i * SUB].z);
+        this.group.add(mesh);
+      }
+      // Símbolo de conexión al inicio del tramo
+      const n0 = nodes[i * SUB];
+      const joint = seg.joint;
+      if (i > 0 || joint !== "empotramiento") {
+        let jm = null;
+        if (joint === "pivote") {
+          jm = new T.Mesh(new T.CylinderGeometry(9, 9, 70, 16), matSteel);
+        } else if (joint === "bisagra") {
+          jm = new T.Mesh(new T.CylinderGeometry(9, 9, 60, 16), matSteel);
+          jm.rotation.x = Math.PI / 2; // eje horizontal transversal
+          jm.rotation.order = "ZYX";
+        } else if (joint === "rotula") {
+          jm = new T.Mesh(new T.SphereGeometry(12, 16, 12), matSteel);
+        } else {
+          jm = new T.Mesh(new T.BoxGeometry(14, 50, 50), matSteel);
+        }
+        jm.position.set(n0.x, n0.y, n0.z);
+        this.group.add(jm);
+      }
+    });
+
+    // TV en su nudo
+    const tv = nodes[model.tvNode];
+    const tvBody = new T.Mesh(new T.BoxGeometry(30, 350, 600),
+      new T.MeshStandardMaterial({ color: 0x263238, roughness: 0.6 }));
+    tvBody.position.set(tv.x + 25, tv.y - 195, tv.z);
+    this.group.add(tvBody);
+    const tvScreen = new T.Mesh(new T.BoxGeometry(4, 320, 560),
+      new T.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x1a4f63, roughness: 0.3 }));
+    tvScreen.position.set(tv.x + 42, tv.y - 195, tv.z);
+    this.group.add(tvScreen);
+
+    // Deformada exagerada
+    if (!res.mecanismo) {
+      const maxU = Math.max(...res.samples.map(p => Math.hypot(p.ux, p.uy, p.uz)), 1e-9);
+      const exag = 0.06 * size / maxU;
+      const pts = res.samples.map(p => new T.Vector3(p.x + p.ux * exag, p.y + p.uy * exag, p.z + p.uz * exag));
+      const line = new T.Line(new T.BufferGeometry().setFromPoints(pts),
+        new T.LineDashedMaterial({ color: 0x7b1fa2, dashSize: 25, gapSize: 15 }));
+      line.computeLineDistances();
+      this.group.add(line);
+    }
+
+    // Encadrar la cámara solo si cambia la geometría
+    const key = nodes.map(n => `${n.x.toFixed(0)},${n.y.toFixed(0)},${n.z.toFixed(0)}`).join(";") + model.support;
+    if (key !== this.geomKey) {
+      this.geomKey = key;
+      const center = new T.Vector3(size * 0.45, -size * 0.1, 0);
+      this.camera.position.set(size * 1.15, size * 0.55, size * 1.35);
+      this.controls.target.copy(center);
+      this.controls.update();
+    }
+    this.renderer.render(this.scene, this.camera);
   },
 };
 
@@ -1179,6 +1536,8 @@ if (typeof document !== "undefined") {
     flechaLim: $("in-flecha-lim"), flechaAbs: $("in-flecha-abs"), fieldFlechaAbs: $("field-flecha-abs"),
     sepPernos: $("in-sep-pernos"), nPernos: $("in-n-pernos"), muro: $("in-muro"),
     error: $("input-error"), svg: $("sketch-svg"), legend: $("joint-legend"),
+    view2d: $("view-2d"), view3d: $("view-3d"), c3d: $("sketch-3d"),
+    threeError: $("three-error"), hint3d: $("hint-3d"),
     verdict: $("verdict"), anchorReco: $("anchor-reco"), grid: $("results-grid"), suggestion: $("suggestion"),
   };
   const MAX_SEGMENTS = 3;
@@ -1186,10 +1545,11 @@ if (typeof document !== "undefined") {
   /* Estado de los tramos. dimsIdx = índice de catálogo o "custom". */
   const state = {
     segments: [
-      { L: 300, angle: 0, tipo: "rect", dimsIdx: 1, custom: null, joint: "empotramiento" },
-      { L: 300, angle: 0, tipo: "rect", dimsIdx: 0, custom: null, joint: "pivote" },
+      { L: 300, angle: 0, planAngle: 0, tipo: "rect", dimsIdx: 1, custom: null, joint: "empotramiento" },
+      { L: 300, angle: 0, planAngle: 0, tipo: "rect", dimsIdx: 0, custom: null, joint: "pivote" },
     ],
     tvSeg: 1,
+    view3d: false,
   };
 
   const segDims = (s) => s.dimsIdx === "custom" ? s.custom : CATALOG[s.tipo][s.dimsIdx].dims;
@@ -1234,6 +1594,11 @@ if (typeof document !== "undefined") {
                   title="0 = horizontal · −90 = hacia el suelo · +90 = hacia arriba">
               </div>
             </div>
+            ${(i === 0 ? els.wallJoint.value : s.joint) !== "pivote" ? "" : `
+            <div class="field adv plan-slider">
+              <label for="seg${i}-plan">Giro en planta (pivote) <span id="seg${i}-plan-val">${s.planAngle || 0}°</span></label>
+              <input type="range" id="seg${i}-plan" min="-170" max="170" step="5" value="${s.planAngle || 0}">
+            </div>`}
             <div class="field">
               <label for="seg${i}-tipo">Tipo de perfil</label>
               <select id="seg${i}-tipo">
@@ -1271,6 +1636,12 @@ if (typeof document !== "undefined") {
         s.angle = parseFloat($(`seg${i}-ang`).value) || 0;
         recalc();
       });
+      const plan = $(`seg${i}-plan`);
+      if (plan) plan.addEventListener("input", () => {
+        s.planAngle = parseFloat(plan.value) || 0;
+        $(`seg${i}-plan-val`).textContent = `${s.planAngle}°`;
+        recalc();
+      });
       $(`seg${i}-tipo`).addEventListener("change", () => {
         s.tipo = $(`seg${i}-tipo`).value;
         s.dimsIdx = 0;
@@ -1291,7 +1662,8 @@ if (typeof document !== "undefined") {
       });
       if (i > 0) $(`seg${i}-joint`).addEventListener("change", () => {
         s.joint = $(`seg${i}-joint`).value;
-        recalc();
+        if (s.joint !== "pivote") s.planAngle = 0; // el plegado requiere pivote
+        renderSegments(); recalc();
       });
       if (s.dimsIdx === "custom") {
         for (const p of PROFILE_TYPES[s.tipo].params) {
@@ -1340,7 +1712,7 @@ if (typeof document !== "undefined") {
       tvSeg: parseInt(els.tvSeg.value, 10),
       material: els.material.value,
       segments: state.segments.map((s, i) => ({
-        L: s.L, angle: s.angle, tipo: s.tipo, dims: segDims(s),
+        L: s.L, angle: s.angle, planAngle: s.planAngle || 0, tipo: s.tipo, dims: segDims(s),
         joint: i === 0 ? els.wallJoint.value : s.joint,
       })),
       endSupport: els.support.value,
@@ -1369,6 +1741,7 @@ if (typeof document !== "undefined") {
     inputs.segments.forEach((s, i) => {
       if (!(s.L > 0)) errs.push(`Tramo ${i + 1}: la longitud debe ser positiva.`);
       if (!(s.angle >= -180 && s.angle <= 180)) errs.push(`Tramo ${i + 1}: el ángulo debe estar entre −180° y 180°.`);
+      if (!(s.planAngle >= -170 && s.planAngle <= 170)) errs.push(`Tramo ${i + 1}: el giro en planta debe estar entre −170° y 170°.`);
       for (const [k, v] of Object.entries(s.dims)) {
         if (!(v > 0)) errs.push(`Tramo ${i + 1}: la dimensión "${k}" debe ser positiva.`);
       }
@@ -1441,13 +1814,15 @@ if (typeof document !== "undefined") {
         `${fmt(res.delta, 2)} mm`,
         `límite ${fmt(res.deltaLim, 2)} mm (ref. ${fmt(res.Lref / 10, 0)} cm) · utilización ${fmt(res.utilDefl * 100, 0)} %`,
         res.utilDefl) +
-      rcard(`Tensión máxima (tramo ${res.iCrit + 1})`,
+      rcard(`Tensión máx. von Mises (tramo ${res.iCrit + 1})`,
         `${fmt(res.sigma, 1)} MPa`,
         `admisible ${fmt(res.sigmaAdm, 1)} MPa · ${segList}`,
         res.utilStress) +
       rcard("Reacciones en la pared",
         `M = ${fmt(res.M / 1000, 1)} N·m`,
-        `V = ${fmt(res.V, 1)} N${Math.abs(res.H) > 0.5 ? ` · H = ${fmt(res.H, 1)} N` : ""}`) +
+        `V = ${fmt(res.V, 1)} N${Math.abs(res.H) > 0.5 ? ` · H = ${fmt(res.H, 1)} N` : ""}` +
+        `${res.My > 500 ? ` · M<sub>vert</sub> = ${fmt(res.My / 1000, 1)} N·m` : ""}` +
+        `${res.Mx > 500 ? ` · torsor = ${fmt(res.Mx / 1000, 1)} N·m` : ""}`) +
       rcard("Fuerzas por perno",
         `Tracción ${fmt(bolts.tensionPerno, 0)} N`,
         `≈ ${fmt(bolts.tensionPerno / G, 1)} kgf de arranque · cortante ${fmt(bolts.cortantePerno, 0)} N`) +
@@ -1460,6 +1835,14 @@ if (typeof document !== "undefined") {
         `N = ${fmt(Math.abs(res.segChecks[res.iPand].Nmin), 0)} N`,
         `N adm = ${fmt(res.segChecks[res.iPand].Ncr / getCriteria().FS, 0)} N (Euler, k=1) · utilización ${fmt(res.utilPandeo * 100, 0)} %`,
         res.utilPandeo);
+    }
+    const Mtor = res.segChecks[res.iTor].Mtor;
+    if (Mtor > 500) {
+      const segTor = inputs.segments[res.iTor];
+      const abierta = segTor.tipo === "pletina" || segTor.tipo === "angular";
+      cards += rcard(`Torsión (tramo ${res.iTor + 1}, brazo plegado)`,
+        `T = ${fmt(Mtor / 1000, 1)} N·m`,
+        `incluida en la tensión de von Mises${abierta ? " · ⚠ sección abierta, muy débil a torsión" : ""}`);
     }
     els.grid.innerHTML = cards;
 
@@ -1496,7 +1879,35 @@ if (typeof document !== "undefined") {
     const best = res.mecanismo ? null : suggestProfile(inputs, criteria);
     renderResults(inputs, res, bolts, best);
     Sketch.render(els.svg, inputs, model, res);
+    if (state.view3d) Sketch3D.update(inputs, model, res);
   }
+
+  // Conmutador de vista 2D / 3D (Three.js se carga del CDN al activar 3D)
+  async function setView3D(want3d) {
+    if (want3d && !Sketch3D.inited) {
+      els.view3d.textContent = "3D…";
+      try {
+        await ensureThree();
+      } catch {
+        els.view3d.textContent = "3D";
+        els.threeError.hidden = false;
+        return;
+      }
+      els.view3d.textContent = "3D";
+      els.c3d.hidden = false; // antes de init para que tenga anchura
+      Sketch3D.init(els.c3d);
+    }
+    state.view3d = want3d;
+    els.threeError.hidden = true;
+    els.svg.style.display = want3d ? "none" : "block";
+    els.c3d.hidden = !want3d;
+    els.hint3d.hidden = !want3d;
+    els.view2d.classList.toggle("active", !want3d);
+    els.view3d.classList.toggle("active", want3d);
+    if (want3d) recalc();
+  }
+  els.view2d.addEventListener("click", () => setView3D(false));
+  els.view3d.addEventListener("click", () => setView3D(true));
 
   // Inicialización
   els.material.innerHTML = Object.entries(MATERIALS)
@@ -1511,6 +1922,10 @@ if (typeof document !== "undefined") {
   els.wallJoint.innerHTML = Object.entries(JOINTS)
     .map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join("");
   els.wallJoint.value = "empotramiento";
+  els.wallJoint.addEventListener("change", () => {
+    if (els.wallJoint.value !== "pivote") state.segments[0].planAngle = 0;
+    renderSegments(); recalc();
+  });
 
   // Conmutador de vista simple / completa (la simple oculta los campos .adv,
   // que conservan sus valores)
@@ -1529,7 +1944,7 @@ if (typeof document !== "undefined") {
     if (state.segments.length >= MAX_SEGMENTS) return;
     const last = state.segments[state.segments.length - 1];
     state.segments.push({
-      L: 200, angle: 0, tipo: last.tipo,
+      L: 200, angle: 0, planAngle: 0, tipo: last.tipo,
       dimsIdx: last.dimsIdx === "custom" ? 0 : last.dimsIdx,
       custom: null, joint: "pivote",
     });
@@ -1542,7 +1957,7 @@ if (typeof document !== "undefined") {
   });
   for (const el of [els.pesoTV, els.pesoSoporte, els.material, els.support, els.fs,
                     els.flechaLim, els.flechaAbs, els.sepPernos, els.nPernos, els.muro,
-                    els.filas, els.wallJoint]) {
+                    els.filas]) {
     el.addEventListener("input", recalc);
     el.addEventListener("change", recalc);
   }
