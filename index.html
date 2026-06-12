@@ -116,7 +116,7 @@
   #mode-toggle button.active { background: var(--c-accent); color: #fff; font-weight: 600; }
   body.simple .adv { display: none !important; }
   /* En la vista simple, la fila peso TV / soporte queda a una columna */
-  body.simple .row2 { grid-template-columns: 1fr; }
+  body.simple .row2.collapse-simple { grid-template-columns: 1fr; }
 
   /* Tramos */
   .seg-card {
@@ -329,7 +329,7 @@
       <label for="in-muro">Tipo de muro</label>
       <select id="in-muro"></select>
     </div>
-    <div class="row2 adv">
+    <div class="row2">
       <div class="field">
         <label for="in-filas">Filas de pernos</label>
         <select id="in-filas">
@@ -354,7 +354,7 @@
 
     <h3>2 · Tramos de la estructura</h3>
     <div id="segments"></div>
-    <button id="btn-add-seg" type="button" class="adv">+ Añadir tramo</button>
+    <button id="btn-add-seg" type="button">+ Añadir tramo</button>
     <div class="field adv" style="margin-top:10px">
       <label for="in-support">Apoyo adicional en el extremo del último tramo</label>
       <select id="in-support"></select>
@@ -366,7 +366,7 @@
     </div>
 
     <h3>4 · Carga (TV)</h3>
-    <div class="row2">
+    <div class="row2 collapse-simple">
       <div class="field">
         <label for="in-peso-tv">Peso TV (kg)</label>
         <input type="number" id="in-peso-tv" value="15" min="0" step="0.5">
@@ -1228,7 +1228,7 @@ if (typeof document !== "undefined") {
                 <label for="seg${i}-L">Longitud (cm)</label>
                 <input type="number" id="seg${i}-L" value="${s.L / 10}" min="1" step="1">
               </div>
-              <div class="field adv">
+              <div class="field">
                 <label for="seg${i}-ang">Ángulo (°)</label>
                 <input type="number" id="seg${i}-ang" value="${s.angle}" min="-180" max="180" step="5"
                   title="0 = horizontal · −90 = hacia el suelo · +90 = hacia arriba">
