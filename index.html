@@ -451,7 +451,7 @@
       No se pudo cargar Three.js desde el CDN (¿sin conexión?). La vista 3D necesita internet; la 2D sigue disponible.
     </div>
     <p id="hint-3d" hidden>Arrastra para orbitar · rueda para zoom · botón derecho para desplazar.
-      Pliega el brazo con los sliders «Giro en planta» de los tramos con conexión pivote (vista completa).</p>
+      Pliega el brazo con los sliders «Giro en planta» de los tramos con conexión pivote.</p>
     <ul id="joint-legend"></ul>
   </section>
 
@@ -1595,7 +1595,7 @@ if (typeof document !== "undefined") {
               </div>
             </div>
             ${(i === 0 ? els.wallJoint.value : s.joint) !== "pivote" ? "" : `
-            <div class="field adv plan-slider">
+            <div class="field plan-slider">
               <label for="seg${i}-plan">Giro en planta (pivote) <span id="seg${i}-plan-val">${s.planAngle || 0}°</span></label>
               <input type="range" id="seg${i}-plan" min="-170" max="170" step="5" value="${s.planAngle || 0}">
             </div>`}
