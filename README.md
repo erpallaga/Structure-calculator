@@ -6,7 +6,9 @@ Web app de un solo archivo (`index.html`, sin dependencias ni build) para dimens
 
 ## Qué calcula
 
-Modela el caso más desfavorable: el brazo totalmente extendido como **viga en voladizo empotrada**, con la TV como carga puntual en el extremo más el peso propio del perfil.
+Modela el caso más desfavorable: el brazo totalmente extendido como **voladizo multi-tramo** (1–3 tramos, cada uno con su longitud y perfil), con la TV como carga puntual en el extremo más el peso propio de cada tramo. La flecha se integra numéricamente sobre la sección escalonada (κ = M/EI) y la tensión se comprueba al inicio de cada tramo.
+
+**Conexiones entre tramos**: empotramiento rígido, pivote de eje vertical (codo típico de brazo de TV, rígido frente a cargas verticales), bisagra de eje horizontal y rótula esférica — estas dos últimas convierten el voladizo en un mecanismo y la app lo señala como inestable. Cada tramo muestra una **vista previa SVG de la sección** del perfil con sus dimensiones.
 
 - **Flecha máxima en punta**: δ = P·L³/(3EI) + q·L⁴/(8EI), comparada con un límite seleccionable (L/150…L/300 o mm absolutos).
 - **Tensión máxima** en el empotramiento: σ = M/W frente a f_y/FS, con veredicto **APTO / NO APTO**.
