@@ -96,28 +96,6 @@
   }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-  /* Conmutador vista simple / completa */
-  #mode-toggle {
-    display: flex;
-    border: 1px solid var(--c-accent);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 4px;
-  }
-  #mode-toggle button {
-    flex: 1;
-    padding: 7px 4px;
-    border: none;
-    background: #fff;
-    color: var(--c-accent);
-    cursor: pointer;
-    font-size: 0.88rem;
-  }
-  #mode-toggle button.active { background: var(--c-accent); color: #fff; font-weight: 600; }
-  body.simple .adv { display: none !important; }
-  /* En la vista simple, la fila peso TV / soporte queda a una columna */
-  body.simple .row2.collapse-simple { grid-template-columns: 1fr; }
-
   /* Tramos */
   .seg-card {
     border: 1px solid var(--c-border);
@@ -238,7 +216,6 @@
     margin-top: 8px;
   }
   #hint-3d { font-size: 0.78rem; color: var(--c-muted); margin: 6px 0 0; }
-  .plan-slider label span { float: right; color: var(--c-accent); font-weight: 600; }
   #joint-legend {
     list-style: none;
     margin: 10px 0 0;
@@ -363,11 +340,6 @@
   <aside class="panel" id="panel-inputs">
     <h2>Datos de entrada</h2>
 
-    <div id="mode-toggle">
-      <button id="mode-simple" type="button">Vista simple</button>
-      <button id="mode-full" type="button">Vista completa</button>
-    </div>
-
     <h3>1 · Pared y placa de anclaje</h3>
     <div class="field">
       <label for="in-muro">Tipo de muro</label>
@@ -387,11 +359,11 @@
         <input type="number" id="in-n-pernos" value="2" min="1" step="1">
       </div>
     </div>
-    <div class="field adv">
+    <div class="field">
       <label for="in-sep-pernos">Separación vertical entre filas s (mm)</label>
       <input type="number" id="in-sep-pernos" value="100" min="10" step="5">
     </div>
-    <div class="field adv">
+    <div class="field">
       <label for="in-wall-joint">Unión placa – tramo 1</label>
       <select id="in-wall-joint"></select>
     </div>
@@ -399,7 +371,7 @@
     <h3>2 · Tramos de la estructura</h3>
     <div id="segments"></div>
     <button id="btn-add-seg" type="button">+ Añadir tramo</button>
-    <div class="field adv" style="margin-top:10px">
+    <div class="field" style="margin-top:10px">
       <label for="in-support">Apoyo adicional en el extremo del último tramo</label>
       <select id="in-support"></select>
     </div>
@@ -415,38 +387,36 @@
         <label for="in-peso-tv">Peso TV (kg)</label>
         <input type="number" id="in-peso-tv" value="15" min="0" step="0.5">
       </div>
-      <div class="field adv">
+      <div class="field">
         <label for="in-peso-soporte">Peso soporte (kg)</label>
         <input type="number" id="in-peso-soporte" value="2" min="0" step="0.5">
       </div>
     </div>
-    <div class="field adv">
+    <div class="field">
       <label for="in-tv-seg">La TV cuelga del extremo del…</label>
       <select id="in-tv-seg"></select>
     </div>
 
-    <div class="adv">
-      <h3>5 · Criterios de comprobación</h3>
-      <div class="row2">
-        <div class="field">
-          <label for="in-fs">Factor de seguridad</label>
-          <input type="number" id="in-fs" value="2" min="1" step="0.1">
-        </div>
-        <div class="field">
-          <label for="in-flecha-lim">Límite de flecha</label>
-          <select id="in-flecha-lim">
-            <option value="150">L/150</option>
-            <option value="200">L/200</option>
-            <option value="250">L/250</option>
-            <option value="300">L/300</option>
-            <option value="abs" selected>Absoluto (mm)</option>
-          </select>
-        </div>
+    <h3>5 · Criterios de comprobación</h3>
+    <div class="row2">
+      <div class="field">
+        <label for="in-fs">Factor de seguridad</label>
+        <input type="number" id="in-fs" value="2" min="1" step="0.1">
       </div>
-      <div class="field" id="field-flecha-abs">
-        <label for="in-flecha-abs">Flecha máxima absoluta (mm)</label>
-        <input type="number" id="in-flecha-abs" value="3" min="0.1" step="0.5">
+      <div class="field">
+        <label for="in-flecha-lim">Límite de flecha</label>
+        <select id="in-flecha-lim">
+          <option value="150">L/150</option>
+          <option value="200">L/200</option>
+          <option value="250">L/250</option>
+          <option value="300">L/300</option>
+          <option value="abs" selected>Absoluto (mm)</option>
+        </select>
       </div>
+    </div>
+    <div class="field" id="field-flecha-abs">
+      <label for="in-flecha-abs">Flecha máxima absoluta (mm)</label>
+      <input type="number" id="in-flecha-abs" value="3" min="0.1" step="0.5">
     </div>
 
     <div id="input-error"></div>
@@ -1441,11 +1411,11 @@ const Sketch3D = {
     const extent = model.segs.reduce((a, sg) => a + sg.L, 0);
     const size = extent;
 
-    // Pared (plano x=0) translúcida, color distinto del fondo, con borde marcado
+    // Pared (plano x=0): cara frontal exactamente en x=0, misma anchura que el suelo
     const wallSide = extent * 1.7;
     const wall = new T.Mesh(new T.BoxGeometry(20, wallSide, wallSide),
       new T.MeshStandardMaterial({ color: 0x6f8aa3, roughness: 0.85, transparent: true, opacity: 0.4 }));
-    wall.position.set(-11, 0, 0);
+    wall.position.set(-10, 0, 0); // cara frontal en x=0
     this.group.add(wall);
     const wallEdges = new T.LineSegments(
       new T.EdgesGeometry(new T.BoxGeometry(20, wallSide, wallSide)),
@@ -1464,16 +1434,18 @@ const Sketch3D = {
         this.group.add(bolt);
       }
 
-    // Suelo si hay apoyo (tono cálido, contrasta con la pared fría) + rejilla
+    // Suelo: siempre visible, comparte anchura con la pared (wallSide) y se
+    // une a ella en la línea de intersección (x=0, y=-wallSide/2).
+    // El suelo se extiende desde x=0 hasta x=wallSide (hacia la habitación).
+    const floorY = -wallSide / 2; // borde inferior de la pared = nivel del suelo
+    const floor = new T.Mesh(new T.BoxGeometry(wallSide, 12, wallSide),
+      new T.MeshStandardMaterial({ color: 0xc7ad8a, roughness: 0.95, transparent: true, opacity: 0.45 }));
+    floor.position.set(wallSide / 2, floorY - 6, 0); // top del suelo en floorY
+    this.group.add(floor);
+    const grid = new T.GridHelper(wallSide, 16, 0x8a7355, 0xa68f6f);
+    grid.position.set(wallSide / 2, floorY + 0.5, 0);
+    this.group.add(grid);
     if (model.support !== "ninguno") {
-      const floorTop = last.y - 14, floorSide = size * 1.9;
-      const floor = new T.Mesh(new T.BoxGeometry(floorSide, 12, floorSide),
-        new T.MeshStandardMaterial({ color: 0xc7ad8a, roughness: 0.95 }));
-      floor.position.set(size * 0.6, floorTop - 6, 0);
-      this.group.add(floor);
-      const grid = new T.GridHelper(floorSide, 16, 0x8a7355, 0xa68f6f);
-      grid.position.set(size * 0.6, floorTop + 0.5, 0);
-      this.group.add(grid);
       const sup = model.support === "deslizante"
         ? new T.Mesh(new T.SphereGeometry(12, 16, 12), matSteel)
         : new T.Mesh(new T.ConeGeometry(14, 24, 4), matSteel);
@@ -1638,7 +1610,6 @@ if (typeof document !== "undefined") {
     pesoTV: $("in-peso-tv"), pesoSoporte: $("in-peso-soporte"), tvSeg: $("in-tv-seg"),
     segments: $("segments"), addSeg: $("btn-add-seg"), support: $("in-support"),
     filas: $("in-filas"), wallJoint: $("in-wall-joint"),
-    modeSimple: $("mode-simple"), modeFull: $("mode-full"),
     material: $("in-material"), fs: $("in-fs"),
     flechaLim: $("in-flecha-lim"), flechaAbs: $("in-flecha-abs"), fieldFlechaAbs: $("field-flecha-abs"),
     sepPernos: $("in-sep-pernos"), nPernos: $("in-n-pernos"), muro: $("in-muro"),
@@ -1686,7 +1657,7 @@ if (typeof document !== "undefined") {
           ${state.segments.length > 1 ? `<button type="button" id="seg${i}-del">✕ Quitar</button>` : ""}
         </div>
         ${i === 0 ? "" : `
-        <div class="field adv">
+        <div class="field">
           <label for="seg${i}-joint">Conexión con el tramo ${i}</label>
           <select id="seg${i}-joint">${jointOpts}</select>
         </div>`}
@@ -1703,11 +1674,6 @@ if (typeof document !== "undefined") {
                   title="0 = horizontal · −90 = hacia el suelo · +90 = hacia arriba">
               </div>
             </div>
-            ${(i === 0 ? els.wallJoint.value : s.joint) !== "pivote" ? "" : `
-            <div class="field plan-slider">
-              <label for="seg${i}-plan">Giro en planta (pivote) <span id="seg${i}-plan-val">${s.planAngle || 0}°</span></label>
-              <input type="range" id="seg${i}-plan" min="-90" max="90" step="5" value="${s.planAngle || 0}">
-            </div>`}
             <div class="field">
               <label for="seg${i}-tipo">Tipo de perfil</label>
               <select id="seg${i}-tipo">
@@ -1744,10 +1710,6 @@ if (typeof document !== "undefined") {
       $(`seg${i}-ang`).addEventListener("input", () => {
         s.angle = parseFloat($(`seg${i}-ang`).value) || 0;
         recalc();
-      });
-      const plan = $(`seg${i}-plan`);
-      if (plan) plan.addEventListener("input", () => {
-        setPlanAngle(i, parseFloat(plan.value) || 0);
       });
       $(`seg${i}-tipo`).addEventListener("change", () => {
         s.tipo = $(`seg${i}-tipo`).value;
@@ -2073,17 +2035,6 @@ if (typeof document !== "undefined") {
     if (els.wallJoint.value !== "pivote") state.segments[0].planAngle = 0;
     renderSegments(); recalc();
   });
-
-  // Conmutador de vista simple / completa (la simple oculta los campos .adv,
-  // que conservan sus valores)
-  function setMode(simple) {
-    document.body.classList.toggle("simple", simple);
-    els.modeSimple.classList.toggle("active", simple);
-    els.modeFull.classList.toggle("active", !simple);
-  }
-  els.modeSimple.addEventListener("click", () => setMode(true));
-  els.modeFull.addEventListener("click", () => setMode(false));
-  setMode(true);
 
   renderLegend();
   renderSegments();
