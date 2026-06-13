@@ -211,7 +211,22 @@
     font-size: 0.8rem;
   }
   #view-toggle button.active { background: var(--c-accent); color: #fff; font-weight: 600; }
-  #sketch-3d { width: 100%; height: 440px; border-radius: 8px; overflow: hidden; background: #dde6ed; }
+  #sketch-3d { width: 100%; height: 440px; border-radius: 8px; overflow: hidden; background: #dde6ed; position: relative; }
+  #fold-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid var(--c-accent);
+    border-radius: 8px;
+    padding: 8px 14px 10px;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  #fold-overlay label { display: block; margin-bottom: 4px; color: var(--c-text); }
+  #fold-overlay b { color: var(--c-accent); }
+  #fold-overlay input { width: 220px; }
   #sketch-3d canvas { display: block; }
   #three-error {
     background: #fdecea;
@@ -446,12 +461,17 @@
       </span>
     </h2>
     <svg id="sketch-svg" viewBox="0 0 800 460" xmlns="http://www.w3.org/2000/svg"></svg>
-    <div id="sketch-3d" hidden></div>
+    <div id="sketch-3d" hidden>
+      <div id="fold-overlay" hidden>
+        <label for="fold-range">Giro en planta — tramo <span id="fold-seg">1</span>: <b id="fold-val">0°</b></label>
+        <input type="range" id="fold-range" min="-170" max="170" step="5" value="0">
+      </div>
+    </div>
     <div id="three-error" hidden>
       No se pudo cargar Three.js desde el CDN (¿sin conexión?). La vista 3D necesita internet; la 2D sigue disponible.
     </div>
     <p id="hint-3d" hidden>Arrastra para orbitar · rueda para zoom · botón derecho para desplazar.
-      Pliega el brazo con los sliders «Giro en planta» de los tramos con conexión pivote.</p>
+      <strong>Pulsa un pivote (cilindro azul)</strong> para plegar ese tramo con el slider.</p>
     <ul id="joint-legend"></ul>
   </section>
 
@@ -1241,14 +1261,14 @@ const Sketch = {
       s += `<text x="${(wallX + mx(xmax)) / 2}" y="68" font-size="12" fill="#6a1b9a" text-anchor="middle">las conexiones/apoyos no equilibran la estructura</text>`;
     }
 
-    // TV en su nudo + flecha de carga
+    // TV anclada por el centro de la pantalla en su nudo + flecha de carga
     const tv = nodes[model.tvNode];
     const tx = mx(tv.x), ty = my(tv.y);
     const tvW = 90, tvH = 54;
-    s += `<line x1="${tx}" y1="${ty}" x2="${tx}" y2="${ty + 20}" stroke="#37474f" stroke-width="4"/>`;
-    s += `<rect x="${tx - tvW / 2}" y="${ty + 20}" width="${tvW}" height="${tvH}" rx="4" fill="#263238"/>`;
-    s += `<rect x="${tx - tvW / 2 + 4}" y="${ty + 24}" width="${tvW - 8}" height="${tvH - 8}" rx="2" fill="#4fc3f7" opacity="0.7"/>`;
-    const yArr = ty + 20 + tvH + 6;
+    s += `<rect x="${tx - tvW / 2}" y="${ty - tvH / 2}" width="${tvW}" height="${tvH}" rx="4" fill="#263238"/>`;
+    s += `<rect x="${tx - tvW / 2 + 4}" y="${ty - tvH / 2 + 4}" width="${tvW - 8}" height="${tvH - 8}" rx="2" fill="#4fc3f7" opacity="0.7"/>`;
+    s += `<circle cx="${tx}" cy="${ty}" r="3" fill="#fff" stroke="#263238"/>`;
+    const yArr = ty + tvH / 2 + 6;
     s += `<line x1="${tx}" y1="${yArr}" x2="${tx}" y2="${yArr + 32}" stroke="var(--c-bad)" stroke-width="3"/>`;
     s += `<polygon points="${tx - 6},${yArr + 30} ${tx + 6},${yArr + 30} ${tx},${yArr + 42}" fill="var(--c-bad)"/>`;
     s += `<text x="${tx + 12}" y="${yArr + 28}" font-size="13" fill="var(--c-bad)">P = ${(inputs.pesoTV + inputs.pesoSoporte).toFixed(1)} kg</text>`;
@@ -1303,6 +1323,22 @@ const Sketch3D = {
     this.controls.maxAzimuthAngle = 1.25;
     this.controls.maxPolarAngle = 1.52;
     this.controls.addEventListener("change", () => this.renderer.render(this.scene, this.camera));
+    // Picking de pivotes: clic (sin arrastre) sobre el cilindro azul
+    this.raycaster = new T.Raycaster();
+    this.pointer = new T.Vector2();
+    this.jointMeshes = [];
+    this.selectedSeg = null;
+    const canvas = this.renderer.domElement;
+    let downPos = null;
+    canvas.addEventListener("pointerdown", (e) => { downPos = [e.clientX, e.clientY]; });
+    canvas.addEventListener("pointerup", (e) => {
+      const wasClick = downPos && Math.hypot(e.clientX - downPos[0], e.clientY - downPos[1]) < 6;
+      downPos = null;
+      if (wasClick) this.onPivotClick?.(this.pick(e));
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      canvas.style.cursor = this.pick(e) != null ? "pointer" : "grab";
+    });
     window.addEventListener("resize", () => {
       if (container.offsetParent === null) return;
       this.camera.aspect = container.clientWidth / 440;
@@ -1347,9 +1383,18 @@ const Sketch3D = {
     return sh;
   },
 
+  pick(e) {
+    const r = this.renderer.domElement.getBoundingClientRect();
+    this.pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const hits = this.raycaster.intersectObjects(this.jointMeshes, false);
+    return hits.length ? hits[0].object.userData.segIdx : null;
+  },
+
   update(inputs, model, res) {
     if (!this.inited) return;
     const T = window.THREE;
+    this.jointMeshes = [];
     // Limpiar grupo anterior
     while (this.group.children.length) {
       const o = this.group.children.pop();
@@ -1415,7 +1460,11 @@ const Sketch3D = {
       if (i > 0 || joint !== "empotramiento") {
         let jm = null;
         if (joint === "pivote") {
-          jm = new T.Mesh(new T.CylinderGeometry(9, 9, 70, 16), matSteel);
+          const sel = this.selectedSeg === i;
+          jm = new T.Mesh(new T.CylinderGeometry(12, 12, 90, 16),
+            new T.MeshStandardMaterial({ color: sel ? 0xef6c00 : 0x1565c0, metalness: 0.5, roughness: 0.4 }));
+          jm.userData.segIdx = i;
+          this.jointMeshes.push(jm);
         } else if (joint === "bisagra") {
           jm = new T.Mesh(new T.CylinderGeometry(9, 9, 60, 16), matSteel);
           jm.rotation.x = Math.PI / 2; // eje horizontal transversal
@@ -1430,16 +1479,24 @@ const Sketch3D = {
       }
     });
 
-    // TV en su nudo
+    // TV anclada por el centro de la pantalla (intersección de diagonales) en
+    // su nudo, orientada según el rumbo del tramo que la soporta: al plegar
+    // ese tramo, la TV gira con él.
     const tv = nodes[model.tvNode];
-    const tvBody = new T.Mesh(new T.BoxGeometry(30, 350, 600),
+    const tvDir = model.elements[(model.tvSeg + 1) * SUB - 1].dir;
+    const horiz = Math.hypot(tvDir[0], tvDir[2]);
+    const yaw = horiz > 1e-6 ? -Math.atan2(tvDir[2], tvDir[0]) : 0;
+    const tvg = new T.Group();
+    const tvBody = new T.Mesh(new T.BoxGeometry(30, 250, 440),
       new T.MeshStandardMaterial({ color: 0x263238, roughness: 0.6 }));
-    tvBody.position.set(tv.x + 25, tv.y - 195, tv.z);
-    this.group.add(tvBody);
-    const tvScreen = new T.Mesh(new T.BoxGeometry(4, 320, 560),
-      new T.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x1a4f63, roughness: 0.3 }));
-    tvScreen.position.set(tv.x + 42, tv.y - 195, tv.z);
-    this.group.add(tvScreen);
+    tvBody.position.set(-17, 0, 0); // cuerpo detrás del plano de pantalla
+    tvg.add(tvBody);
+    const tvScreen = new T.Mesh(new T.BoxGeometry(4, 224, 410),
+      new T.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x1a4f63, roughness: 0.3, transparent: true, opacity: 0.8 }));
+    tvg.add(tvScreen); // pantalla centrada en el nudo
+    tvg.position.set(tv.x, tv.y, tv.z);
+    tvg.rotation.y = yaw;
+    this.group.add(tvg);
 
     // Deformada exagerada
     if (!res.mecanismo) {
@@ -1452,12 +1509,12 @@ const Sketch3D = {
       this.group.add(line);
     }
 
-    // Encadrar la cámara solo si cambia la geometría
-    const key = nodes.map(n => `${n.x.toFixed(0)},${n.y.toFixed(0)},${n.z.toFixed(0)}`).join(";") + model.support;
+    // Encadrar la cámara solo si cambia la estructura (no al plegar u orbitar)
+    const key = model.segs.map(s => `${s.L}/${s.angle}`).join(";") + model.support;
     if (key !== this.geomKey) {
       this.geomKey = key;
       const center = new T.Vector3(size * 0.45, -size * 0.1, 0);
-      this.camera.position.set(size * 1.15, size * 0.55, size * 1.35);
+      this.camera.position.set(size * 1.5, size * 0.75, size * 1.75);
       this.controls.target.copy(center);
       this.controls.update();
     }
@@ -1538,6 +1595,8 @@ if (typeof document !== "undefined") {
     error: $("input-error"), svg: $("sketch-svg"), legend: $("joint-legend"),
     view2d: $("view-2d"), view3d: $("view-3d"), c3d: $("sketch-3d"),
     threeError: $("three-error"), hint3d: $("hint-3d"),
+    foldOverlay: $("fold-overlay"), foldRange: $("fold-range"),
+    foldSeg: $("fold-seg"), foldVal: $("fold-val"),
     verdict: $("verdict"), anchorReco: $("anchor-reco"), grid: $("results-grid"), suggestion: $("suggestion"),
   };
   const MAX_SEGMENTS = 3;
@@ -1638,9 +1697,7 @@ if (typeof document !== "undefined") {
       });
       const plan = $(`seg${i}-plan`);
       if (plan) plan.addEventListener("input", () => {
-        s.planAngle = parseFloat(plan.value) || 0;
-        $(`seg${i}-plan-val`).textContent = `${s.planAngle}°`;
-        recalc();
+        setPlanAngle(i, parseFloat(plan.value) || 0);
       });
       $(`seg${i}-tipo`).addEventListener("change", () => {
         s.tipo = $(`seg${i}-tipo`).value;
@@ -1898,6 +1955,7 @@ if (typeof document !== "undefined") {
       Sketch3D.init(els.c3d);
     }
     state.view3d = want3d;
+    if (!want3d) { els.foldOverlay.hidden = true; Sketch3D.selectedSeg = null; }
     els.threeError.hidden = true;
     els.svg.style.display = want3d ? "none" : "block";
     els.c3d.hidden = !want3d;
@@ -1908,6 +1966,37 @@ if (typeof document !== "undefined") {
   }
   els.view2d.addEventListener("click", () => setView3D(false));
   els.view3d.addEventListener("click", () => setView3D(true));
+
+  /** Cambia el plegado de un tramo y sincroniza tarjeta + overlay 3D. */
+  function setPlanAngle(i, v) {
+    state.segments[i].planAngle = v;
+    const card = $(`seg${i}-plan`);
+    if (card) { card.value = v; $(`seg${i}-plan-val`).textContent = `${v}°`; }
+    if (!els.foldOverlay.hidden && parseInt(els.foldSeg.dataset.i, 10) === i) {
+      els.foldRange.value = v;
+      els.foldVal.textContent = `${v}°`;
+    }
+    recalc();
+  }
+
+  // Clic en un pivote de la vista 3D → slider superpuesto para ese tramo
+  Sketch3D.onPivotClick = (i) => {
+    if (i == null) {
+      els.foldOverlay.hidden = true;
+      Sketch3D.selectedSeg = null;
+    } else {
+      Sketch3D.selectedSeg = i;
+      els.foldSeg.textContent = i + 1;
+      els.foldSeg.dataset.i = i;
+      els.foldRange.value = state.segments[i].planAngle || 0;
+      els.foldVal.textContent = `${state.segments[i].planAngle || 0}°`;
+      els.foldOverlay.hidden = false;
+    }
+    recalc();
+  };
+  els.foldRange.addEventListener("input", () => {
+    setPlanAngle(parseInt(els.foldSeg.dataset.i, 10), parseFloat(els.foldRange.value) || 0);
+  });
 
   // Inicialización
   els.material.innerHTML = Object.entries(MATERIALS)
