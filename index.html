@@ -34,12 +34,12 @@
 
   main {
     display: grid;
-    grid-template-columns: 330px 1fr;
+    grid-template-columns: 370px 1fr;
     grid-template-rows: auto auto;
     grid-template-areas: "inputs sketch" "inputs results";
     gap: 16px;
     padding: 16px 24px;
-    max-width: 1280px;
+    max-width: 1320px;
     margin: 0 auto;
   }
   #panel-inputs  { grid-area: inputs; }
@@ -49,6 +49,7 @@
     main {
       grid-template-columns: 1fr;
       grid-template-areas: "inputs" "sketch" "results";
+      padding: 12px;
     }
   }
 
@@ -94,13 +95,71 @@
     outline-offset: -1px;
   }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  #custom-dims {
-    border: 1px dashed var(--c-border);
+
+  /* Tramos */
+  .seg-card {
+    border: 1px solid var(--c-border);
     border-radius: 8px;
-    padding: 10px 10px 2px;
+    padding: 10px 10px 4px;
     margin-bottom: 10px;
     background: #fafbfc;
   }
+  .seg-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .seg-head strong { font-size: 0.88rem; color: var(--c-accent); }
+  .seg-head button {
+    border: none;
+    background: #fdecea;
+    color: var(--c-bad);
+    border-radius: 6px;
+    padding: 2px 9px;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+  .seg-body {
+    display: grid;
+    grid-template-columns: 1fr 104px;
+    gap: 8px;
+    align-items: start;
+  }
+  .section-preview {
+    border: 1px dashed var(--c-border);
+    border-radius: 6px;
+    background: #fff;
+    text-align: center;
+    padding: 4px 2px 4px;
+    overflow: visible;
+  }
+  .section-preview svg { overflow: visible; }
+  .section-preview .cap {
+    font-size: 0.68rem;
+    color: var(--c-muted);
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .custom-dims {
+    border: 1px dashed var(--c-border);
+    border-radius: 8px;
+    padding: 8px 8px 0;
+    margin: 0 0 8px;
+    background: #fff;
+  }
+  #btn-add-seg {
+    width: 100%;
+    padding: 7px;
+    border: 1px dashed var(--c-accent);
+    background: #e8f1fb;
+    color: var(--c-accent);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  #btn-add-seg:disabled { opacity: 0.45; cursor: not-allowed; }
+
   #input-error {
     display: none;
     background: #fdecea;
@@ -114,6 +173,62 @@
   #input-error.visible { display: block; }
 
   #sketch-svg { width: 100%; height: auto; display: block; }
+  #view-toggle {
+    float: right;
+    display: inline-flex;
+    border: 1px solid var(--c-accent);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  #view-toggle button {
+    border: none;
+    background: #fff;
+    color: var(--c-accent);
+    padding: 2px 14px;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+  #view-toggle button.active { background: var(--c-accent); color: #fff; font-weight: 600; }
+  #sketch-3d { width: 100%; height: 440px; border-radius: 8px; overflow: hidden; background: #dde6ed; position: relative; }
+  #fold-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid var(--c-accent);
+    border-radius: 8px;
+    padding: 8px 14px 10px;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  #fold-overlay label { display: block; margin-bottom: 4px; color: var(--c-text); }
+  #fold-overlay b { color: var(--c-accent); }
+  #fold-overlay input { width: 220px; }
+  #sketch-3d canvas { display: block; }
+  #three-error {
+    background: #fdecea;
+    color: var(--c-bad);
+    border: 1px solid #f5c6c3;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    margin-top: 8px;
+  }
+  #hint-3d { font-size: 0.78rem; color: var(--c-muted); margin: 6px 0 0; }
+  #joint-legend {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    border-top: 1px solid var(--c-border);
+    font-size: 0.8rem;
+    color: var(--c-muted);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 4px 16px;
+  }
+  #joint-legend li { display: flex; align-items: center; gap: 8px; }
+  #joint-legend svg { flex: 0 0 auto; }
 
   .results-grid {
     display: grid;
@@ -149,6 +264,24 @@
   }
   #verdict.apto { background: var(--c-ok); }
   #verdict.noapto { background: var(--c-bad); }
+  #verdict.inestable { background: #6a1b9a; }
+
+  #anchor-reco {
+    margin: 0 0 14px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+  }
+  #anchor-reco.ok { background: #e6f4ea; border: 1px solid #b7dfc0; }
+  #anchor-reco.ko { background: #fdecea; border: 1px solid #f5c6c3; }
+  #anchor-reco .big {
+    font-size: 1.12rem;
+    font-weight: 700;
+    margin: 2px 0 4px;
+  }
+  #anchor-reco.ok .big { color: var(--c-ok); }
+  #anchor-reco.ko .big { color: var(--c-bad); }
+  #anchor-reco .note { font-size: 0.78rem; color: var(--c-muted); margin-top: 4px; }
 
   #suggestion {
     margin-top: 14px;
@@ -171,7 +304,7 @@
   #suggestion button:hover { background: #0d4a8f; }
 
   footer {
-    max-width: 1280px;
+    max-width: 1320px;
     margin: 0 auto;
     padding: 8px 24px 32px;
     font-size: 0.8rem;
@@ -199,7 +332,7 @@
 
 <header>
   <h1>Calculadora estructural — Brazo extensible para TV</h1>
-  <p>Voladizo empotrado en pared · flecha, tensión y fuerzas de anclaje</p>
+  <p>Pórtico plano multi-tramo anclado a pared · flecha, tensión, pandeo y fuerzas de anclaje</p>
 </header>
 
 <main>
@@ -207,8 +340,49 @@
   <aside class="panel" id="panel-inputs">
     <h2>Datos de entrada</h2>
 
-    <h3>Cargas</h3>
+    <h3>1 · Pared y placa de anclaje</h3>
+    <div class="field">
+      <label for="in-muro">Tipo de muro</label>
+      <select id="in-muro"></select>
+    </div>
     <div class="row2">
+      <div class="field">
+        <label for="in-filas">Filas de pernos</label>
+        <select id="in-filas">
+          <option value="2" selected>2 filas</option>
+          <option value="3">3 filas</option>
+          <option value="4">4 filas</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="in-n-pernos">Pernos por fila</label>
+        <input type="number" id="in-n-pernos" value="2" min="1" step="1">
+      </div>
+    </div>
+    <div class="field">
+      <label for="in-sep-pernos">Separación vertical entre filas s (mm)</label>
+      <input type="number" id="in-sep-pernos" value="100" min="10" step="5">
+    </div>
+    <div class="field">
+      <label for="in-wall-joint">Unión placa – tramo 1</label>
+      <select id="in-wall-joint"></select>
+    </div>
+
+    <h3>2 · Tramos de la estructura</h3>
+    <div id="segments"></div>
+    <button id="btn-add-seg" type="button">+ Añadir tramo</button>
+    <div class="field" style="margin-top:10px">
+      <label for="in-support">Apoyo adicional en el extremo del último tramo</label>
+      <select id="in-support"></select>
+    </div>
+
+    <h3>3 · Material (toda la estructura)</h3>
+    <div class="field">
+      <select id="in-material" aria-label="Material"></select>
+    </div>
+
+    <h3>4 · Carga (TV)</h3>
+    <div class="row2 collapse-simple">
       <div class="field">
         <label for="in-peso-tv">Peso TV (kg)</label>
         <input type="number" id="in-peso-tv" value="15" min="0" step="0.5">
@@ -219,26 +393,11 @@
       </div>
     </div>
     <div class="field">
-      <label for="in-longitud">Longitud del brazo extendido L (cm)</label>
-      <input type="number" id="in-longitud" value="60" min="1" step="1">
+      <label for="in-tv-seg">La TV cuelga del extremo del…</label>
+      <select id="in-tv-seg"></select>
     </div>
 
-    <h3>Perfil</h3>
-    <div class="field">
-      <label for="in-tipo">Tipo de perfil</label>
-      <select id="in-tipo"></select>
-    </div>
-    <div class="field">
-      <label for="in-dims">Dimensiones (mm)</label>
-      <select id="in-dims"></select>
-    </div>
-    <div id="custom-dims" hidden></div>
-    <div class="field">
-      <label for="in-material">Material</label>
-      <select id="in-material"></select>
-    </div>
-
-    <h3>Criterios</h3>
+    <h3>5 · Criterios de comprobación</h3>
     <div class="row2">
       <div class="field">
         <label for="in-fs">Factor de seguridad</label>
@@ -248,28 +407,16 @@
         <label for="in-flecha-lim">Límite de flecha</label>
         <select id="in-flecha-lim">
           <option value="150">L/150</option>
-          <option value="200" selected>L/200</option>
+          <option value="200">L/200</option>
           <option value="250">L/250</option>
           <option value="300">L/300</option>
-          <option value="abs">Absoluto (mm)</option>
+          <option value="abs" selected>Absoluto (mm)</option>
         </select>
       </div>
     </div>
-    <div class="field" id="field-flecha-abs" hidden>
+    <div class="field" id="field-flecha-abs">
       <label for="in-flecha-abs">Flecha máxima absoluta (mm)</label>
       <input type="number" id="in-flecha-abs" value="3" min="0.1" step="0.5">
-    </div>
-
-    <h3>Placa de anclaje</h3>
-    <div class="row2">
-      <div class="field">
-        <label for="in-sep-pernos">Separación vertical entre filas s (mm)</label>
-        <input type="number" id="in-sep-pernos" value="100" min="10" step="5">
-      </div>
-      <div class="field">
-        <label for="in-n-pernos">Pernos por fila (2 filas)</label>
-        <input type="number" id="in-n-pernos" value="2" min="1" step="1">
-      </div>
     </div>
 
     <div id="input-error"></div>
@@ -277,14 +424,32 @@
 
   <!-- ===================== SKETCH ===================== -->
   <section class="panel" id="panel-sketch">
-    <h2>Esquema de la estructura</h2>
-    <svg id="sketch-svg" viewBox="0 0 800 430" xmlns="http://www.w3.org/2000/svg"></svg>
+    <h2>Esquema de la estructura
+      <span id="view-toggle">
+        <button id="view-2d" type="button" class="active">2D</button>
+        <button id="view-3d" type="button">3D</button>
+      </span>
+    </h2>
+    <svg id="sketch-svg" viewBox="0 0 800 460" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="sketch-3d" hidden>
+      <div id="fold-overlay" hidden>
+        <label for="fold-range">Giro en planta — tramo <span id="fold-seg">1</span>: <b id="fold-val">0°</b></label>
+        <input type="range" id="fold-range" min="-90" max="90" step="5" value="0">
+      </div>
+    </div>
+    <div id="three-error" hidden>
+      No se pudo cargar Three.js desde el CDN (¿sin conexión?). La vista 3D necesita internet; la 2D sigue disponible.
+    </div>
+    <p id="hint-3d" hidden>Arrastra para orbitar · rueda para zoom · botón derecho para desplazar.
+      <strong>Pulsa un pivote (cilindro azul)</strong> para plegar ese tramo con el slider.</p>
+    <ul id="joint-legend"></ul>
   </section>
 
   <!-- ===================== RESULTADOS ===================== -->
   <section class="panel" id="panel-results">
     <h2>Resultados</h2>
     <div id="verdict"></div>
+    <div id="anchor-reco"></div>
     <div class="results-grid" id="results-grid"></div>
     <div id="suggestion"></div>
   </section>
@@ -294,18 +459,23 @@
   <details>
     <summary>Hipótesis de cálculo</summary>
     <ul>
-      <li>Modelo de viga en voladizo perfectamente empotrada en la pared (caso más desfavorable: brazo totalmente extendido y horizontal).</li>
-      <li>Carga puntual P = (peso TV + soporte)·g aplicada en el extremo libre, más peso propio del perfil como carga distribuida q = A·ρ·g.</li>
-      <li>Flecha en punta: δ = P·L³/(3EI) + q·L⁴/(8EI). Tensión máxima en el empotramiento: σ = M/W con M = P·L + q·L²/2.</li>
-      <li>Comprobaciones: σ ≤ f<sub>y</sub>/FS y δ ≤ límite seleccionado.</li>
-      <li>Anclaje: placa con 2 filas de pernos separadas verticalmente s. Tracción por perno de la fila superior T = M/(s·n); cortante repartido entre todos los pernos V<sub>p</sub> = V/(2n).</li>
-      <li>Perfiles orientados con su dimensión mayor (canto) en vertical. Propiedades de sección sin radios de acuerdo (valores ligeramente conservadores en peso, optimistas en inercia ~5–10%).</li>
+      <li>Pórtico espacial (3D) resuelto por el método matricial de rigidez con elementos viga-columna de Euler-Bernoulli de 12 GDL; cada tramo se subdivide en 6 elementos. Los tramos pueden tener ángulo en el plano vertical y giro en planta en los pivotes (brazo plegado).</li>
+      <li>Tensión combinada de von Mises: σ = |N|/A + |M<sub>z</sub>|/W + |M<sub>y</sub>|/W<sub>y</sub> y τ = T/W<sub>t</sub> → σ<sub>eq</sub> = √(σ²+3τ²) ≤ f<sub>y</sub>/FS. Torsión con J de Bredt en tubos y Σl·t³/3 en secciones abiertas (pletina/angular, muy débiles a torsión). Sin alabeo restringido ni concentraciones de tensión.</li>
+      <li>El pivote de eje vertical se modela rígido: las cargas gravitatorias no generan momento alrededor de ejes verticales y el ángulo de plegado lo fija el usuario (fricción/tope del codo).</li>
+      <li>Carga puntual P = (peso TV + soporte)·g en el nudo elegido, más el peso propio de cada tramo aplicado como cargas nodales equivalentes.</li>
+      <li>Tensión combinada por tramo: σ = |N|/A + |M|<sub>máx</sub>/W ≤ f<sub>y</sub>/FS. En tramos comprimidos se comprueba además el pandeo de Euler con longitud de pandeo igual a la del tramo (k = 1): |N| ≤ N<sub>cr</sub>/FS = π²EI/(FS·L²).</li>
+      <li>Flecha: desplazamiento vertical del nudo de la TV ≤ límite, referido a la distancia horizontal pared–TV (o a la longitud total si la TV está en la pared).</li>
+      <li><strong>Conexiones:</strong> el <em>pivote de eje vertical</em> (codo de brazo articulado) gira en planta pero transmite la flexión vertical → rígido en este modelo plano. La <em>bisagra de eje horizontal</em> y la <em>rótula</em> liberan el momento en el plano: la estructura solo es estable si otros apoyos lo permiten; si la matriz de rigidez resulta singular, la app lo señala como <strong>mecanismo inestable</strong>.</li>
+      <li><strong>Apoyos en el extremo:</strong> <em>deslizante</em> (rodillo: restringe solo el movimiento vertical, p. ej. una pata apoyada en el suelo) o <em>articulado fijo</em> (restringe vertical y horizontal). Convierten el voladizo en una estructura apuntalada y reducen drásticamente flecha y momento en la pared.</li>
+      <li>Anclaje: placa rígida con n<sub>f</sub> filas de pernos equiespaciadas s que gira sobre la fila inferior; tracción máxima por perno T = M·d<sub>máx</sub>/(n·Σd<sub>j</sub>²) + tracción axial repartida; cortante repartido entre todos los pernos. La unión placa–tramo 1 puede ser rígida o articulada (bisagra/rótula liberan el momento hacia los anclajes, pero exigen otros apoyos para la estabilidad).</li>
+      <li>Recomendación de taco/tornillo: se elige el menor anclaje del tipo de muro cuya capacidad orientativa de servicio cumple la interacción lineal T/T<sub>adm</sub> + V/V<sub>adm</sub> ≤ 1. Son valores genéricos conservadores, no de un fabricante concreto.</li>
+      <li>Perfiles orientados con su dimensión mayor (canto) en el plano de flexión. Propiedades de sección sin radios de acuerdo (≈5–10 % optimistas en inercia).</li>
     </ul>
   </details>
   <div class="disclaimer">
     <strong>Aviso:</strong> herramienta orientativa y educativa; <strong>no sustituye el cálculo de un técnico competente</strong> ni la normativa aplicable (CTE / Eurocódigo).
-    No considera cargas dinámicas (tirones, impactos, sismo), fatiga, pandeo lateral-torsional ni la resistencia de la soldadura o unión brazo–placa.
-    El cálculo de pernos es simplificado: la capacidad real del anclaje depende del material del muro (hormigón, ladrillo hueco/macizo, cartón-yeso) — consulta las fichas técnicas del fabricante del taco y la interacción tracción-cortante.
+    No considera cargas dinámicas (tirones, impactos, sismo), fatiga, pandeo lateral-torsional, efectos de segundo orden, holguras ni la resistencia local de pivotes, casquillos, soldaduras o uniones brazo–placa.
+    El pandeo se comprueba de forma simplificada (Euler, k=1). El cálculo de pernos es simplificado: la capacidad real del anclaje depende del material del muro (hormigón, ladrillo hueco/macizo, cartón-yeso) — consulta las fichas técnicas del fabricante del taco.
     La pletina y el angular en voladizo son sensibles a torsión y vuelco lateral no modelados; es preferible usar tubos. Verifica el peso real de la TV + soporte con margen.
   </div>
 </footer>
@@ -314,33 +484,82 @@
 "use strict";
 
 /* =====================================================================
- * 0. CONSTANTES Y AYUDAS
- * Unidades internas: N, mm, MPa (N/mm²). Densidad en kg/m³ se convierte
- * a peso propio q en N/mm.
+ * 0. CONSTANTES
+ * Unidades internas: N, mm, MPa (N/mm²). Sistema de ejes del modelo:
+ * x hacia la habitación, y hacia ARRIBA. Ángulo de tramo en grados desde
+ * la horizontal (0 = horizontal, −90 = hacia el suelo, +90 = hacia arriba).
  * =================================================================== */
-const G = 9.81; // m/s²
+const G = 9.81;     // m/s²
+const SUB = 6;      // subelementos por tramo (malla del solver)
 
 /* =====================================================================
- * 1. MATERIALES
- * E [MPa], fy límite elástico [MPa], densidad [kg/m³]
+ * 1. MATERIALES — E [MPa], fy [MPa], densidad [kg/m³]
  * =================================================================== */
 const MATERIALS = {
-  S235:    { nombre: "Acero S235",       E: 210000, fy: 235, densidad: 7850 },
-  S275:    { nombre: "Acero S275",       E: 210000, fy: 275, densidad: 7850 },
-  AL6061:  { nombre: "Aluminio 6061-T6", E: 68900,  fy: 276, densidad: 2700 },
-  AL6063:  { nombre: "Aluminio 6063-T5", E: 68900,  fy: 145, densidad: 2700 },
-  INOX304: { nombre: "Inox 304",         E: 193000, fy: 215, densidad: 7900 },
+  S235:    { nombre: "Acero S235",       E: 210000, G: 81000, fy: 235, densidad: 7850 },
+  S275:    { nombre: "Acero S275",       E: 210000, G: 81000, fy: 275, densidad: 7850 },
+  AL6061:  { nombre: "Aluminio 6061-T6", E: 68900,  G: 26200, fy: 276, densidad: 2700 },
+  AL6063:  { nombre: "Aluminio 6063-T5", E: 68900,  G: 26200, fy: 145, densidad: 2700 },
+  INOX304: { nombre: "Inox 304",         E: 193000, G: 74000, fy: 215, densidad: 7900 },
 };
 
 /* =====================================================================
- * 2. TIPOS DE PERFIL
- * props(dims) devuelve { A [mm²], I [mm⁴], W [mm³], hDraw [mm] } para
- * flexión alrededor del eje horizontal (carga vertical). Los perfiles se
- * orientan con el canto (dimensión mayor) en vertical.
- * Comprobación manual (tubo rect 40x20x2, h=40 b=20 t=2):
- *   A = 40·20 − 36·16 = 224 mm²
- *   I = (20·40³ − 16·36³)/12 = 44 459 mm⁴  (tablas con radios: ≈ 4.05·10⁴)
- *   W = I/20 = 2 223 mm³
+ * 2. CONEXIONES ENTRE TRAMOS Y APOYOS
+ * transmiteMomento: si la unión transmite la flexión en el plano vertical.
+ * Las que no lo hacen se modelan como rótula interna (liberación de
+ * momento); la estabilidad la decide el solver (matriz singular = mecanismo).
+ * =================================================================== */
+const JOINTS = {
+  empotramiento: {
+    nombre: "Empotramiento (rígido)",
+    transmiteMomento: true,
+    release: null,
+    desc: "Unión soldada o atornillada rígida: transmite momento, axil y cortante. Es la unión a la pared y la opción por defecto entre tramos fijos.",
+  },
+  pivote: {
+    nombre: "Pivote de eje vertical (codo)",
+    transmiteMomento: true,
+    release: null, // rígido: la gravedad no genera momento de eje vertical y el ángulo lo fija el usuario
+    desc: "Articulación de plegado típica de los brazos de TV: permite girar el tramo en planta (slider \"giro en planta\") y transmite la flexión vertical.",
+  },
+  bisagra: {
+    nombre: "Bisagra de eje horizontal",
+    transmiteMomento: false,
+    release: [5], // libera rz local (flexión en el plano vertical)
+    desc: "Libera el momento en el plano vertical. Solo es estable si otros apoyos lo permiten (p. ej. una pata al suelo); en voladizo puro es un mecanismo.",
+  },
+  rotula: {
+    nombre: "Rótula esférica",
+    transmiteMomento: false,
+    release: [4, 5], // libera ambas flexiones (la torsión se mantiene acoplada)
+    desc: "Libera los giros de flexión en ambos planos. Útil solo combinada con apoyos o tirantes.",
+  },
+};
+
+const SUPPORTS = {
+  ninguno: {
+    nombre: "Libre (sin apoyo)",
+    desc: "El extremo final queda en voladizo.",
+  },
+  deslizante: {
+    nombre: "Deslizante al suelo (rodillo)",
+    desc: "Apoyo que solo impide el movimiento vertical: una pata que descansa en el suelo y puede deslizar. Reduce mucho la flecha y el momento en la pared.",
+  },
+  articulado: {
+    nombre: "Articulado fijo (sin deslizamiento)",
+    desc: "Apoyo anclado al suelo que impide el movimiento vertical y el horizontal, pero permite el giro.",
+  },
+};
+
+/* =====================================================================
+ * 3. TIPOS DE PERFIL
+ * props(dims) → { A [mm²], I, Iy [mm⁴], W, Wy [mm³], J [mm⁴], Wt [mm³],
+ * hDraw, bDraw [mm] }. I/W: flexión en el plano vertical (eje fuerte,
+ * canto h). Iy/Wy: flexión de eje vertical (aparece al plegar en planta).
+ * J/Wt: torsión (Bredt en tubos; Σl·t³/3 en secciones abiertas —
+ * pletina y angular son muy débiles a torsión).
+ * Comprobación manual (tubo rect 40x20x2): A = 224 mm², I = 44 459 mm⁴,
+ * W = 2 223 mm³, J(Bredt) = 4·(38·18)²·2/(2·(38+18)) ≈ 33 416 mm⁴.
  * =================================================================== */
 const PROFILE_TYPES = {
   rect: {
@@ -355,7 +574,10 @@ const PROFILE_TYPES = {
       const bi = d.b - 2 * d.t, hi = d.h - 2 * d.t;
       const A = d.b * d.h - bi * hi;
       const I = (d.b * d.h ** 3 - bi * hi ** 3) / 12;
-      return { A, I, W: (2 * I) / d.h, hDraw: d.h };
+      const Iy = (d.h * d.b ** 3 - hi * bi ** 3) / 12;
+      const am = (d.b - d.t) * (d.h - d.t); // área media (Bredt)
+      const J = 4 * am * am * d.t / (2 * ((d.b - d.t) + (d.h - d.t)));
+      return { A, I, W: 2 * I / d.h, Iy, Wy: 2 * Iy / d.b, J, Wt: 2 * am * d.t, hDraw: d.h, bDraw: d.b };
     },
   },
   cuadrado: {
@@ -380,20 +602,23 @@ const PROFILE_TYPES = {
       const di = d.D - 2 * d.t;
       const A = Math.PI * (d.D ** 2 - di ** 2) / 4;
       const I = Math.PI * (d.D ** 4 - di ** 4) / 64;
-      return { A, I, W: (2 * I) / d.D, hDraw: d.D };
+      const J = 2 * I;
+      return { A, I, W: 2 * I / d.D, Iy: I, Wy: 2 * I / d.D, J, Wt: 2 * J / d.D, hDraw: d.D, bDraw: d.D };
     },
   },
   pletina: {
     nombre: "Pletina (canto vertical)",
     params: [
-      { key: "h", label: "Canto h (vertical)" },
+      { key: "h", label: "Canto h" },
       { key: "b", label: "Espesor b" },
     ],
     valida() { return true; },
     props(d) {
       const A = d.b * d.h;
       const I = d.b * d.h ** 3 / 12;
-      return { A, I, W: d.b * d.h ** 2 / 6, hDraw: d.h };
+      const Iy = d.h * d.b ** 3 / 12;
+      const J = d.h * d.b ** 3 / 3; // sección abierta delgada
+      return { A, I, W: d.b * d.h ** 2 / 6, Iy, Wy: d.h * d.b ** 2 / 6, J, Wt: J / d.b, hDraw: d.h, bDraw: d.b };
     },
   },
   angular: {
@@ -405,7 +630,7 @@ const PROFILE_TYPES = {
     ],
     valida(d) { return d.t < Math.min(d.b, d.h); },
     props(d) {
-      // Dos rectángulos: ala vertical t×h (completa) + ala horizontal (b−t)×t abajo.
+      // Dos rectángulos: ala vertical t×h (completa) + ala horizontal (b−t)×t.
       const A1 = d.t * d.h, y1 = d.h / 2;
       const A2 = (d.b - d.t) * d.t, y2 = d.t / 2;
       const A = A1 + A2;
@@ -413,13 +638,20 @@ const PROFILE_TYPES = {
       const I = d.t * d.h ** 3 / 12 + A1 * (y1 - yc) ** 2
               + (d.b - d.t) * d.t ** 3 / 12 + A2 * (yc - y2) ** 2;
       const c = Math.max(yc, d.h - yc);
-      return { A, I, W: I / c, hDraw: d.h };
+      // Eje vertical: ala vertical en x∈[0,t], ala horizontal en x∈[0,b]
+      const x1 = d.t / 2, x2 = d.t + (d.b - d.t) / 2;
+      const xc = (A1 * x1 + A2 * x2) / A;
+      const Iy = d.h * d.t ** 3 / 12 + A1 * (x1 - xc) ** 2
+               + d.t * (d.b - d.t) ** 3 / 12 + A2 * (x2 - xc) ** 2;
+      const cx = Math.max(xc, d.b - xc);
+      const J = (d.h + d.b - d.t) * d.t ** 3 / 3; // sección abierta
+      return { A, I, W: I / c, Iy, Wy: Iy / cx, J, Wt: J / d.t, hDraw: d.h, bDraw: d.b };
     },
   },
 };
 
 /* =====================================================================
- * 3. CATÁLOGO (medidas comerciales habituales, mm)
+ * 4. CATÁLOGO (medidas comerciales habituales, mm)
  * =================================================================== */
 const CATALOG = {
   rect: [
@@ -463,83 +695,437 @@ const CATALOG = {
 };
 
 /* =====================================================================
- * 4. MOTOR DE CÁLCULO (funciones puras, sin DOM)
+ * 5. MOTOR DE CÁLCULO — pórtico ESPACIAL (3D) por rigidez matricial
+ * (funciones puras, sin DOM)
  *
- * El modelo usa un array de segmentos para poder ampliarse en el futuro
- * a brazos multi-segmento con articulaciones. Tipos de unión previstos:
- *   "empotramiento" (v1, implementado) · "rotula" · "bisagra"
- * En v1 hay un único segmento empotrado en la pared.
+ * Elementos viga-columna 3D de 12 GDL (3 traslaciones + 3 giros por
+ * nudo). Cada tramo puede tener ángulo de elevación (plano vertical) y
+ * giro en planta acumulado en los pivotes. La torsión (GJ) y la flexión
+ * de eje débil (Iy) entran en juego al plegar el brazo en planta.
+ * Ejes globales: x hacia la habitación, y ARRIBA, z lateral.
+ * Liberaciones de momento (bisagra/rótula) por condensación estática.
+ * Los pivotes de eje vertical se modelan rígidos: las cargas
+ * gravitatorias no generan momento alrededor de ejes verticales, y el
+ * ángulo de plegado lo fija el usuario.
  * =================================================================== */
 
-/** Construye el modelo estructural a partir de las entradas de la UI. */
+const vcross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const vnorm = (a) => { const m = Math.hypot(...a); return [a[0] / m, a[1] / m, a[2] / m]; };
+
+/** Ejes locales del elemento: ex a lo largo, ez horizontal transversal, ey ⊥. */
+function elemAxes(dir) {
+  const ex = dir;
+  const ez = Math.abs(ex[1]) > 0.999 ? [0, 0, 1] : vnorm([-ex[2], 0, ex[0]]);
+  const ey = vcross(ez, ex);
+  return { ex, ey, ez };
+}
+
+/** Construye el modelo: malla de nudos/elementos a partir de los tramos. */
 function buildModel(inputs) {
   const material = MATERIALS[inputs.material];
-  const props = PROFILE_TYPES[inputs.tipo].props(inputs.dims);
+  const nodes = [{ x: 0, y: 0, z: 0 }];
+  const elements = [];
+  let cur = { x: 0, y: 0, z: 0 };
+  let psi = 0; // rumbo en planta acumulado (rad)
+  inputs.segments.forEach((s, si) => {
+    const props = PROFILE_TYPES[s.tipo].props(s.dims);
+    psi += (s.planAngle || 0) * Math.PI / 180;
+    const a = (s.angle || 0) * Math.PI / 180;
+    const dir = [Math.cos(a) * Math.cos(psi), Math.sin(a), Math.cos(a) * Math.sin(psi)];
+    const Le = s.L / SUB;
+    for (let j = 0; j < SUB; j++) {
+      const n1 = nodes.length - 1;
+      cur = { x: cur.x + dir[0] * Le, y: cur.y + dir[1] * Le, z: cur.z + dir[2] * Le };
+      nodes.push({ ...cur });
+      elements.push({
+        n1, n2: n1 + 1, L: Le, dir, segIdx: si,
+        E: material.E, Gm: material.G, props,
+        q: props.A * 1e-6 * material.densidad * G / 1000, // N/mm
+        // Liberación de giros al inicio del tramo (índices GDL locales):
+        // bisagra → flexión en el plano vertical (rz); rótula → ambas
+        // flexiones (ry, rz). La torsión (rx) se mantiene acoplada para
+        // no introducir el modo de giro libre del propio tubo.
+        release: j === 0 ? JOINTS[s.joint].release : null,
+      });
+    }
+  });
+  const tvSeg = Math.min(inputs.tvSeg ?? inputs.segments.length - 1, inputs.segments.length - 1);
   return {
-    segments: [{
-      L: inputs.L,            // mm
-      profile: props,         // { A, I, W, hDraw }
-      material,               // { E, fy, densidad }
-      joint: "empotramiento", // unión con la pared
-    }],
+    nodes, elements, material,
+    segs: inputs.segments,
     tipLoad: (inputs.pesoTV + inputs.pesoSoporte) * G, // N
+    tvNode: (tvSeg + 1) * SUB,
+    tvSeg,
+    support: inputs.endSupport || "ninguno",
   };
 }
 
-/** Analiza el modelo: flecha, tensión y reacciones en el empotramiento. */
-function analyze(model, criteria) {
-  // v1: un solo segmento; el bucle deja preparada la extensión multi-segmento.
-  const seg = model.segments[0];
-  const { L, profile, material } = seg;
-  const P = model.tipLoad;
-  const EI = material.E * profile.I;
+/** Rigidez local 12×12 del elemento viga-columna 3D (Euler-Bernoulli). */
+function kLocal(e) {
+  const { E, Gm, L } = e;
+  const { A, I, Iy, J } = e.props; // I = Iz (flexión en el plano vertical)
+  const k = Array.from({ length: 12 }, () => new Float64Array(12));
+  const set = (i, j, v) => { k[i][j] = v; k[j][i] = v; };
+  set(0, 0, E * A / L); set(0, 6, -E * A / L); set(6, 6, E * A / L);
+  set(3, 3, Gm * J / L); set(3, 9, -Gm * J / L); set(9, 9, Gm * J / L);
+  // Flexión alrededor de ez local (Iz): uy=1/7, rz=5/11
+  let a = 12 * E * I / L ** 3, b = 6 * E * I / L ** 2, c = 4 * E * I / L, d = 2 * E * I / L;
+  set(1, 1, a); set(1, 5, b); set(1, 7, -a); set(1, 11, b);
+  set(5, 5, c); set(5, 7, -b); set(5, 11, d);
+  set(7, 7, a); set(7, 11, -b); set(11, 11, c);
+  // Flexión alrededor de ey local (Iy): uz=2/8, ry=4/10 (signos opuestos)
+  a = 12 * E * Iy / L ** 3; b = 6 * E * Iy / L ** 2; c = 4 * E * Iy / L; d = 2 * E * Iy / L;
+  set(2, 2, a); set(2, 4, -b); set(2, 8, -a); set(2, 10, -b);
+  set(4, 4, c); set(4, 8, b); set(4, 10, d);
+  set(8, 8, a); set(8, 10, b); set(10, 10, c);
+  return e.release && e.release.length ? condense(k, e.release) : k;
+}
 
-  // Peso propio: A [mm²] → m², ×ρ [kg/m³] ×g → N/m → N/mm
-  const q = profile.A * 1e-6 * material.densidad * G / 1000;
+/** Condensación estática de los GDL liberados: k_aa − k_ar·k_rr⁻¹·k_ra. */
+function condense(k, rel) {
+  const n = 12;
+  const out = Array.from({ length: n }, (_, i) => Float64Array.from(k[i]));
+  const r = rel.length;
+  // k_rr⁻¹ por eliminación (matriz pequeña, 1–2 GDL)
+  const krr = rel.map(i => rel.map(j => k[i][j]));
+  const inv = krr.map((row, i) => row.map((_, j) => (i === j ? 1 : 0)));
+  for (let c0 = 0; c0 < r; c0++) {
+    const p = krr[c0][c0];
+    for (let j = 0; j < r; j++) { krr[c0][j] /= p; inv[c0][j] /= p; }
+    for (let i = 0; i < r; i++) if (i !== c0) {
+      const f = krr[i][c0];
+      for (let j = 0; j < r; j++) { krr[i][j] -= f * krr[c0][j]; inv[i][j] -= f * inv[c0][j]; }
+    }
+  }
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++) {
+      let corr = 0;
+      for (let p = 0; p < r; p++)
+        for (let q = 0; q < r; q++) corr += k[i][rel[p]] * inv[p][q] * k[rel[q]][j];
+      out[i][j] = k[i][j] - corr;
+    }
+  for (const i of rel) { out[i].fill(0); for (let j = 0; j < n; j++) out[j][i] = 0; }
+  return out;
+}
 
-  const M = P * L + q * L ** 2 / 2;                       // N·mm
-  const V = P + q * L;                                    // N
-  const delta = P * L ** 3 / (3 * EI) + q * L ** 4 / (8 * EI); // mm
-  const sigma = M / profile.W;                            // MPa
-  const sigmaAdm = material.fy / criteria.FS;             // MPa
-  const deltaLim = criteria.deltaLimAbs != null
-    ? criteria.deltaLimAbs
-    : L / criteria.deltaLimRatio;
+/** Vector global del elemento (12) → locales. */
+function toLocal(e, v) {
+  const { ex, ey, ez } = elemAxes(e.dir);
+  const out = new Array(12);
+  for (let b0 = 0; b0 < 12; b0 += 3) {
+    out[b0]     = ex[0] * v[b0] + ex[1] * v[b0 + 1] + ex[2] * v[b0 + 2];
+    out[b0 + 1] = ey[0] * v[b0] + ey[1] * v[b0 + 1] + ey[2] * v[b0 + 2];
+    out[b0 + 2] = ez[0] * v[b0] + ez[1] * v[b0 + 1] + ez[2] * v[b0 + 2];
+  }
+  return out;
+}
 
-  const utilStress = sigma / sigmaAdm;
-  const utilDefl = delta / deltaLim;
-  return {
-    q, M, V, delta, sigma, sigmaAdm, deltaLim, utilStress, utilDefl,
-    pesoPropio: profile.A * 1e-6 * material.densidad, // kg/m
-    apto: utilStress <= 1 && utilDefl <= 1,
-  };
+/** k global = Tᵀ·k_local·T (T por bloques 3×3 de ejes locales). */
+function kGlobal(e) {
+  const kl = kLocal(e);
+  const { ex, ey, ez } = elemAxes(e.dir);
+  const R = [ex, ey, ez]; // filas
+  const T = Array.from({ length: 12 }, () => new Float64Array(12));
+  for (let b0 = 0; b0 < 12; b0 += 3)
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++) T[b0 + i][b0 + j] = R[i][j];
+  const kt = Array.from({ length: 12 }, () => new Float64Array(12));
+  for (let i = 0; i < 12; i++)
+    for (let j = 0; j < 12; j++) {
+      let v = 0;
+      for (let m = 0; m < 12; m++) v += kl[i][m] * T[m][j];
+      kt[i][j] = v;
+    }
+  const kg = Array.from({ length: 12 }, () => new Float64Array(12));
+  for (let i = 0; i < 12; i++)
+    for (let j = 0; j < 12; j++) {
+      let v = 0;
+      for (let m = 0; m < 12; m++) v += T[m][i] * kt[m][j];
+      kg[i][j] = v;
+    }
+  return kg;
 }
 
 /**
- * Fuerzas en los pernos de la placa de anclaje.
- * Modelo simplificado: 2 filas separadas verticalmente s; el momento lo
- * resiste el par tracción (fila superior) / compresión (fila inferior),
- * y el cortante se reparte entre todos los pernos.
+ * Resuelve A·x=b (A simétrica definida positiva tras aplicar apoyos).
+ * Devuelve null solo si A es realmente singular (mecanismo).
+ *
+ * Antes de eliminar se aplica un escalado diagonal simétrico (D·A·D con
+ * D=diag(1/√Aᵢᵢ)): así la rigidez axial (EA/L) y la de flexión (EI/L³),
+ * que difieren en varios órdenes de magnitud en tramos largos, quedan
+ * equilibradas y la detección de singularidad no descarta por error
+ * pivotes de flexión legítimos (falso «mecanismo» con brazos muy largos).
  */
-function anchorForces({ M, V }, { s, n }) {
+function solve(Am, b) {
+  const n = b.length;
+  const d = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const aii = Am[i][i];
+    d[i] = aii > 0 ? 1 / Math.sqrt(aii) : 1; // SPD ⇒ diagonal > 0
+  }
+  const A = Am.map((row, i) => {
+    const r = new Float64Array(n);
+    for (let j = 0; j < n; j++) r[j] = row[j] * d[i] * d[j];
+    return r;
+  });
+  const x = Float64Array.from(b, (v, i) => v * d[i]);
+  // Tras el escalado la diagonal es ~1, así que el umbral es absoluto.
+  const TOL = 1e-10;
+  for (let col = 0; col < n; col++) {
+    let p = col;
+    for (let r = col + 1; r < n; r++) if (Math.abs(A[r][col]) > Math.abs(A[p][col])) p = r;
+    if (Math.abs(A[p][col]) < TOL) return null; // mecanismo (modo de cuerpo rígido)
+    if (p !== col) { [A[p], A[col]] = [A[col], A[p]]; const t = x[p]; x[p] = x[col]; x[col] = t; }
+    for (let r = col + 1; r < n; r++) {
+      const f = A[r][col] / A[col][col];
+      if (f === 0) continue;
+      for (let cc = col; cc < n; cc++) A[r][cc] -= f * A[col][cc];
+      x[r] -= f * x[col];
+    }
+  }
+  for (let i = n - 1; i >= 0; i--) {
+    let v = x[i];
+    for (let j = i + 1; j < n; j++) v -= A[i][j] * x[j];
+    x[i] = v / A[i][i];
+  }
+  for (let i = 0; i < n; i++) x[i] *= d[i]; // deshacer el escalado
+  return x;
+}
+
+/** Análisis completo: desplazamientos, reacciones, tensiones (von Mises con torsión), pandeo. */
+function analyze(model, criteria) {
+  const nn = model.nodes.length, nd = 6 * nn;
+  const K = Array.from({ length: nd }, () => new Float64Array(nd));
+  const F = new Float64Array(nd);
+
+  for (const e of model.elements) {
+    const kg = kGlobal(e);
+    const map = [];
+    for (let i = 0; i < 6; i++) map.push(6 * e.n1 + i);
+    for (let i = 0; i < 6; i++) map.push(6 * e.n2 + i);
+    for (let i = 0; i < 12; i++)
+      for (let j = 0; j < 12; j++) K[map[i]][map[j]] += kg[i][j];
+    const w = e.q * e.L; // peso del subelemento → cargas nodales
+    F[6 * e.n1 + 1] -= w / 2;
+    F[6 * e.n2 + 1] -= w / 2;
+  }
+  F[6 * model.tvNode + 1] -= model.tipLoad;
+
+  // Apoyos: empotramiento en la pared (nudo 0) + apoyo opcional en el extremo
+  const fixed = new Set([0, 1, 2, 3, 4, 5]);
+  const endN = nn - 1;
+  if (model.support === "deslizante") fixed.add(6 * endN + 1);
+  if (model.support === "articulado") { fixed.add(6 * endN); fixed.add(6 * endN + 1); fixed.add(6 * endN + 2); }
+
+  const free = [];
+  for (let i = 0; i < nd; i++) if (!fixed.has(i)) free.push(i);
+  const Ar = free.map(i => free.map(j => K[i][j]));
+  const br = free.map(i => F[i]);
+  const xr = solve(Ar, br);
+
+  const Ltot = model.segs.reduce((a, s) => a + s.L, 0);
+  const pesoTotal = model.elements.reduce((a, e) => a + e.q * e.L, 0) / G;
+  const sigmaAdm = model.material.fy / criteria.FS;
+
+  if (!xr) {
+    return { mecanismo: true, Ltot, pesoTotal, sigmaAdm, apto: false };
+  }
+
+  const u = new Float64Array(nd);
+  free.forEach((dof, i) => { u[dof] = xr[i]; });
+
+  // Reacciones en la pared (nudo 0): R = K·u − F  → [Fx,Fy,Fz,Mx,My,Mz]
+  const R = [0, 1, 2, 3, 4, 5].map(i => {
+    let v = -F[i];
+    for (let j = 0; j < nd; j++) v += K[i][j] * u[j];
+    return v;
+  });
+  const M = Math.abs(R[5]);                      // flexión de eje horizontal (filas)
+  const My = Math.abs(R[4]);                     // flexión de eje vertical (columnas)
+  const Mx = Math.abs(R[3]);                     // torsor normal a la placa
+  const V = Math.hypot(R[1], R[2]);              // cortante resultante en el plano de la placa
+  const pull = Math.max(0, -R[0]);               // tracción axial sobre los anclajes, N
+
+  // Esfuerzos por elemento → comprobaciones por tramo
+  const segChecks = model.segs.map(() => ({ sigma: 0, Mmax: 0, Mtor: 0, Nmin: 0, Nmax: 0 }));
+  for (const e of model.elements) {
+    const ue = [];
+    for (let i = 0; i < 6; i++) ue.push(u[6 * e.n1 + i]);
+    for (let i = 0; i < 6; i++) ue.push(u[6 * e.n2 + i]);
+    const ul = toLocal(e, ue);
+    const kl = kLocal(e);
+    const fl = new Float64Array(12);
+    for (let i = 0; i < 12; i++)
+      for (let j = 0; j < 12; j++) fl[i] += kl[i][j] * ul[j];
+    const N = fl[6];                                            // + tracción, − compresión
+    const Mz = Math.max(Math.abs(fl[5]), Math.abs(fl[11]));     // flexión eje fuerte
+    const Myl = Math.max(Math.abs(fl[4]), Math.abs(fl[10]));    // flexión eje débil
+    const Mt = Math.abs(fl[9]);                                 // torsor
+    const p = e.props;
+    const sigmaN = Math.abs(N) / p.A + Mz / p.W + Myl / p.Wy;
+    const tau = Mt / p.Wt;
+    const sigmaVM = Math.sqrt(sigmaN ** 2 + 3 * tau ** 2);      // von Mises
+    const sc = segChecks[e.segIdx];
+    sc.Mmax = Math.max(sc.Mmax, Mz);
+    sc.Mtor = Math.max(sc.Mtor, Mt);
+    sc.Nmin = Math.min(sc.Nmin, N);
+    sc.Nmax = Math.max(sc.Nmax, Math.abs(N));
+    sc.sigma = Math.max(sc.sigma, sigmaVM);
+  }
+  model.segs.forEach((s, i) => {
+    const props = PROFILE_TYPES[s.tipo].props(s.dims);
+    const sc = segChecks[i];
+    sc.util = sc.sigma / sigmaAdm;
+    // Pandeo de Euler en tramos comprimidos (k = 1, inercia mínima)
+    if (sc.Nmin < -1e-6) {
+      const Ncr = Math.PI ** 2 * model.material.E * Math.min(props.I, props.Iy) / s.L ** 2;
+      sc.utilPandeo = Math.abs(sc.Nmin) / (Ncr / criteria.FS);
+      sc.Ncr = Ncr;
+    } else {
+      sc.utilPandeo = 0;
+    }
+  });
+  const iCrit = segChecks.reduce((im, c, i) => (c.util > segChecks[im].util ? i : im), 0);
+  const iPand = segChecks.reduce((im, c, i) => (c.utilPandeo > segChecks[im].utilPandeo ? i : im), 0);
+  const iTor = segChecks.reduce((im, c, i) => (c.Mtor > segChecks[im].Mtor ? i : im), 0);
+  const sigma = segChecks[iCrit].sigma;
+  const utilStress = sigma / sigmaAdm;
+  const utilPandeo = segChecks[iPand].utilPandeo;
+
+  // Flecha: desplazamiento vertical del nudo de la TV; referencia = vuelo en planta
+  const tvN = model.nodes[model.tvNode];
+  const delta = Math.abs(u[6 * model.tvNode + 1]);
+  const vuelo = Math.hypot(tvN.x, tvN.z);
+  const Lref = vuelo > 1 ? vuelo : Ltot;
+  const deltaLim = criteria.deltaLimAbs != null ? criteria.deltaLimAbs : Lref / criteria.deltaLimRatio;
+  const utilDefl = delta / deltaLim;
+
+  // Deformada para los sketches
+  const samples = model.nodes.map((n, i) => ({
+    x: n.x, y: n.y, z: n.z,
+    ux: u[6 * i], uy: u[6 * i + 1], uz: u[6 * i + 2],
+  }));
+
   return {
-    tensionPerno: M / (s * n),  // N
-    cortantePerno: V / (2 * n), // N
+    mecanismo: false,
+    Ltot, Lref, M, My, Mx, V, H: R[0], pull, delta, sigma, sigmaAdm, deltaLim,
+    utilStress, utilDefl, utilPandeo, iPand, iTor, segChecks, iCrit, pesoTotal, samples,
+    apto: utilStress <= 1 && utilDefl <= 1 && utilPandeo <= 1,
   };
 }
 
 /**
- * Recorre todo el catálogo con el material y criterios actuales y devuelve
- * el perfil más ligero (menor área) que cumple flecha y tensión.
+ * Fuerzas en los pernos de la placa de anclaje (modelo simplificado):
+ * malla rígida de nf filas × n columnas equiespaciadas s. La flexión de
+ * eje horizontal gira sobre la fila inferior (T = M·d_max/(n·Σd_j²)); la
+ * de eje vertical, sobre la columna extrema (análogo); el torsor se
+ * reparte de forma polar y el cortante/axil entre todos los pernos.
+ * Con nf=2 y sin plegado equivale al clásico T = M/(s·n).
+ */
+function anchorForces({ M, My = 0, Mx = 0, V, pull = 0 }, { s, n, nf = 2 }) {
+  const total = nf * n;
+  let sumdy2 = 0;
+  for (let j = 1; j < nf; j++) sumdy2 += (j * s) ** 2;
+  let T = M * (nf - 1) * s / (n * sumdy2) + pull / total;
+  if (n > 1) {
+    let sumdz2 = 0;
+    for (let j = 1; j < n; j++) sumdz2 += (j * s) ** 2;
+    T += My * (n - 1) * s / (nf * sumdz2);
+  }
+  // Torsor: reparto polar respecto al c.d.g. del grupo
+  let sumr2 = 0, rmax = 0;
+  const y0 = (nf - 1) * s / 2, z0 = (n - 1) * s / 2;
+  for (let f = 0; f < nf; f++)
+    for (let c = 0; c < n; c++) {
+      const r2 = (f * s - y0) ** 2 + (c * s - z0) ** 2;
+      sumr2 += r2;
+      rmax = Math.max(rmax, Math.sqrt(r2));
+    }
+  return {
+    tensionPerno: T,                                          // N
+    cortantePerno: V / total + (sumr2 > 0 ? Mx * rmax / sumr2 : 0), // N
+  };
+}
+
+/* =====================================================================
+ * 5b. TACOS Y TORNILLOS POR TIPO DE MURO
+ * Capacidades de servicio ORIENTATIVAS por anclaje [kgf], conservadoras,
+ * para tracción (arranque) y cortante. La capacidad real depende del
+ * taco concreto y del muro: consultar ficha del fabricante.
+ * =================================================================== */
+const WALLS = {
+  hormigon: {
+    nombre: "Hormigón",
+    anchors: [
+      { taco: "Taco nylon Ø6",                    tornillo: "Ø4,5–5 × 40 mm",  trac: 25,  cort: 35 },
+      { taco: "Taco nylon Ø8",                    tornillo: "Ø5–6 × 60 mm",    trac: 40,  cort: 55 },
+      { taco: "Taco nylon Ø10",                   tornillo: "Ø7–8 × 80 mm",    trac: 60,  cort: 80 },
+      { taco: "Taco nylon Ø12",                   tornillo: "Ø9–10 × 100 mm",  trac: 90,  cort: 120 },
+      { taco: "Anclaje metálico de expansión M8", tornillo: "M8 × 75 mm",      trac: 150, cort: 180 },
+      { taco: "Anclaje metálico de expansión M10",tornillo: "M10 × 90 mm",     trac: 230, cort: 270 },
+    ],
+  },
+  macizo: {
+    nombre: "Ladrillo macizo",
+    anchors: [
+      { taco: "Taco nylon Ø6",              tornillo: "Ø4,5–5 × 40 mm", trac: 15, cort: 20 },
+      { taco: "Taco nylon Ø8",              tornillo: "Ø5–6 × 60 mm",   trac: 25, cort: 35 },
+      { taco: "Taco nylon Ø10",             tornillo: "Ø7–8 × 80 mm",   trac: 40, cort: 55 },
+      { taco: "Taco nylon Ø12",             tornillo: "Ø9–10 × 100 mm", trac: 60, cort: 80 },
+      { taco: "Anclaje químico (varilla M8)", tornillo: "varilla M8",   trac: 100, cort: 120 },
+      { taco: "Anclaje químico (varilla M10)",tornillo: "varilla M10",  trac: 150, cort: 180 },
+    ],
+  },
+  hueco: {
+    nombre: "Ladrillo hueco / perforado",
+    anchors: [
+      { taco: "Taco universal (nudo) Ø8",          tornillo: "Ø5 × 65 mm",   trac: 10, cort: 20 },
+      { taco: "Taco universal largo Ø10",          tornillo: "Ø6–7 × 85 mm", trac: 18, cort: 30 },
+      { taco: "Anclaje químico con tamiz Ø12",     tornillo: "varilla M8",   trac: 50, cort: 60 },
+      { taco: "Anclaje químico con tamiz Ø16",     tornillo: "varilla M10",  trac: 80, cort: 90 },
+    ],
+  },
+  yeso: {
+    nombre: "Cartón-yeso (placa)",
+    nota: "Para TVs medianas o grandes es preferible anclar a los montantes metálicos o atravesar hasta muro portante.",
+    anchors: [
+      { taco: "Taco basculante (Molly) M4", tornillo: "M4",        trac: 10, cort: 15 },
+      { taco: "Taco basculante (Molly) M5", tornillo: "M5",        trac: 15, cort: 25 },
+      { taco: "Taco basculante (Molly) M6", tornillo: "M6",        trac: 20, cort: 30 },
+    ],
+  },
+};
+
+/**
+ * Recomienda el taco/tornillo más pequeño del muro elegido que soporta la
+ * tracción y el cortante por perno (interacción lineal T/Tadm + V/Vadm ≤ 1).
+ * Devuelve null si ninguno es suficiente.
+ */
+function recommendAnchor(bolts, wallKey) {
+  const wall = WALLS[wallKey];
+  const Td = bolts.tensionPerno / G;   // kgf
+  const Vd = bolts.cortantePerno / G;  // kgf
+  for (const a of wall.anchors) {
+    const util = Td / a.trac + Vd / a.cort;
+    if (util <= 1) return { wall, anchor: a, util, Td, Vd };
+  }
+  return { wall, anchor: null, util: null, Td, Vd };
+}
+
+/**
+ * Recorre el catálogo aplicando el mismo perfil a TODOS los tramos
+ * (manteniendo geometría, conexiones y apoyos) y devuelve el más ligero
+ * que cumple todas las comprobaciones. null si ninguno cumple.
  */
 function suggestProfile(inputs, criteria) {
   let best = null;
   for (const [tipo, entries] of Object.entries(CATALOG)) {
     for (const entry of entries) {
-      const model = buildModel({ ...inputs, tipo, dims: entry.dims });
+      const segments = inputs.segments.map(s => ({ ...s, tipo, dims: entry.dims }));
+      const model = buildModel({ ...inputs, segments });
       const res = analyze(model, criteria);
-      if (res.apto && (!best || model.segments[0].profile.A < best.A)) {
-        best = { tipo, entry, A: model.segments[0].profile.A, res };
+      if (res.apto && (!best || res.pesoTotal < best.res.pesoTotal)) {
+        best = { tipo, entry, res };
       }
     }
   }
@@ -547,167 +1133,671 @@ function suggestProfile(inputs, criteria) {
 }
 
 /* =====================================================================
- * 5. SKETCH (SVG)
+ * 6. SKETCH (SVG)
  * =================================================================== */
 const Sketch = {
-  WALL_X: 120,
-  ARM_Y: 200,
-  MAX_ARM_PX: 540,
-
-  /** Símbolo de unión. v1: solo "empotramiento"; "rotula"/"bisagra" previstos. */
-  drawJoint(type, x, y1, y2) {
+  /** Símbolo de conexión entre tramos, centrado en (x, y) en px. */
+  jointSymbol(type, x, y) {
     switch (type) {
-      case "empotramiento": {
-        let s = `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#37474f" stroke-width="4"/>`;
-        for (let y = y1; y < y2; y += 16) {
-          s += `<line x1="${x}" y1="${y + 16}" x2="${x - 14}" y2="${y}" stroke="#78909c" stroke-width="2"/>`;
-        }
-        return s;
-      }
-      case "rotula": // previsto: círculo articulado
-        return `<circle cx="${x}" cy="${(y1 + y2) / 2}" r="7" fill="#fff" stroke="#37474f" stroke-width="2"/>`;
-      case "bisagra": // previsto: círculo con pasador
-        return `<circle cx="${x}" cy="${(y1 + y2) / 2}" r="7" fill="#37474f"/>`;
+      case "pivote":
+        return `<line x1="${x}" y1="${y - 22}" x2="${x}" y2="${y + 22}" stroke="#37474f" stroke-width="1.5" stroke-dasharray="7 3 1.5 3"/>`
+             + `<circle cx="${x}" cy="${y}" r="8" fill="#fff" stroke="#37474f" stroke-width="2.5"/>`
+             + `<circle cx="${x}" cy="${y}" r="2.5" fill="#37474f"/>`;
+      case "bisagra":
+        return `<circle cx="${x}" cy="${y}" r="8" fill="#fff" stroke="#ef6c00" stroke-width="2.5"/>`;
+      case "rotula":
+        return `<circle cx="${x}" cy="${y}" r="9" fill="#fff" stroke="#ef6c00" stroke-width="2"/>`
+             + `<circle cx="${x}" cy="${y}" r="4" fill="#ef6c00"/>`;
+      case "empotramiento":
+        return `<rect x="${x - 3}" y="${y - 16}" width="6" height="32" fill="#37474f" transform="rotate(0 ${x} ${y})"/>`;
       default:
         return "";
     }
   },
 
-  render(svg, inputs, model, res, bolts) {
-    const seg = model.segments[0];
-    const L = seg.L;
-    const scale = this.MAX_ARM_PX / L;          // px por mm
-    const x0 = this.WALL_X, y0 = this.ARM_Y;
-    const xTip = x0 + L * scale;
-    const armColor = res.apto ? "var(--c-ok)" : "var(--c-bad)";
-    const armH = Math.max(6, Math.min(26, seg.profile.hDraw * scale));
+  /** Símbolo de apoyo en (x, y) px. */
+  supportSymbol(type, x, y) {
+    if (type === "deslizante") {
+      return `<line x1="${x - 16}" y1="${y + 14}" x2="${x + 16}" y2="${y + 14}" stroke="#37474f" stroke-width="2"/>`
+           + `<circle cx="${x - 7}" cy="${y + 8}" r="5" fill="#fff" stroke="#37474f" stroke-width="2"/>`
+           + `<circle cx="${x + 7}" cy="${y + 8}" r="5" fill="#fff" stroke="#37474f" stroke-width="2"/>`
+           + this.groundHatch(x, y + 14, 40);
+    }
+    if (type === "articulado") {
+      return `<path d="M ${x} ${y} L ${x - 12} ${y + 16} L ${x + 12} ${y + 16} Z" fill="#fff" stroke="#37474f" stroke-width="2"/>`
+           + this.groundHatch(x, y + 16, 40);
+    }
+    return "";
+  },
+
+  groundHatch(xc, y, halfW) {
+    let s = `<line x1="${xc - halfW}" y1="${y}" x2="${xc + halfW}" y2="${y}" stroke="#37474f" stroke-width="2"/>`;
+    for (let x = xc - halfW; x < xc + halfW; x += 12) {
+      s += `<line x1="${x + 12}" y1="${y}" x2="${x}" y2="${y + 10}" stroke="#78909c" stroke-width="1.5"/>`;
+    }
+    return s;
+  },
+
+  wallHatch(x, y1, y2) {
+    let s = `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#37474f" stroke-width="4"/>`;
+    for (let y = y1; y < y2; y += 16) {
+      s += `<line x1="${x}" y1="${y + 16}" x2="${x - 14}" y2="${y}" stroke="#78909c" stroke-width="2"/>`;
+    }
+    return s;
+  },
+
+  render(svg, inputs, model, res, extendido) {
+    const nodes = model.nodes;
+    const xmax = Math.max(...nodes.map(n => n.x), 100);
+    const ymax = Math.max(...nodes.map(n => n.y), 0);
+    const ymin = Math.min(...nodes.map(n => n.y), 0);
+    // Encuadre: pared anclada a la izquierda, estructura centrada en vertical
+    // dentro del área útil (deja sitio para la TV de perfil y la deformada).
+    const VW = 800, VH = 460;
+    const mL = 112, mR = 128, mT = 46, mB = 70;
+    const drawW = VW - mL - mR, drawH = VH - mT - mB;
+    const scale = Math.min(drawW / Math.max(xmax, 1), drawH / Math.max(ymax - ymin, 60));
+    const cyModel = (ymin + ymax) / 2, drawCY = mT + drawH / 2;
+    const mx = (x) => mL + x * scale;
+    const my = (y) => drawCY - (y - cyModel) * scale;
+    const armColor = res.mecanismo ? "#6a1b9a" : res.apto ? "var(--c-ok)" : "var(--c-bad)";
 
     let s = "";
 
-    // Pared + empotramiento
-    s += `<rect x="${x0 - 60}" y="40" width="60" height="350" fill="#eceff1"/>`;
-    s += this.drawJoint(seg.joint, x0, 40, 390);
-
-    // Placa de anclaje con pernos (separación s a escala, limitada al alto de la placa)
-    const sPx = Math.min(inputs.anclaje.s * scale, 220);
-    const plateH = sPx + 50;
-    s += `<rect x="${x0}" y="${y0 - plateH / 2}" width="12" height="${plateH}" rx="2" fill="#90a4ae" stroke="#546e7a"/>`;
-    for (const dy of [-sPx / 2, sPx / 2]) {
-      s += `<circle cx="${x0 + 6}" cy="${y0 + dy}" r="4" fill="#37474f"/>`;
+    // Pared + placa de anclaje con pernos
+    const wallX = mx(0);
+    s += `<rect x="${wallX - 60}" y="0" width="60" height="${VH}" fill="#eceff1"/>`;
+    s += this.wallHatch(wallX, 6, VH - 6);
+    const nf = inputs.anclaje.nf || 2;
+    const sPx = Math.min(inputs.anclaje.s * scale, 150 / (nf - 1));
+    const groupH = sPx * (nf - 1);
+    const plateH = groupH + 44;
+    s += `<rect x="${wallX}" y="${my(0) - plateH / 2}" width="10" height="${plateH}" rx="2" fill="#90a4ae" stroke="#546e7a"/>`;
+    for (let f = 0; f < nf; f++) {
+      s += `<circle cx="${wallX + 5}" cy="${my(0) - groupH / 2 + f * sPx}" r="3.5" fill="#37474f"/>`;
     }
-    s += `<text x="${x0 + 22}" y="${y0 - plateH / 2 - 6}" font-size="12" fill="#546e7a">${inputs.anclaje.n}×2 pernos · s=${inputs.anclaje.s} mm</text>`;
+    s += `<text x="${wallX + 16}" y="${my(0) - plateH / 2 - 8}" font-size="11" fill="#546e7a">${nf}×${inputs.anclaje.n} pernos · s=${inputs.anclaje.s} mm</text>`;
 
-    // Brazo
-    s += `<rect x="${x0 + 12}" y="${y0 - armH / 2}" width="${xTip - x0 - 12}" height="${armH}" rx="2" fill="${armColor}"/>`;
+    // Tramos como líneas gruesas + etiquetas + conexiones
+    model.segs.forEach((seg, i) => {
+      const nA = i * SUB, nB = (i + 1) * SUB;
+      const props = PROFILE_TYPES[seg.tipo].props(seg.dims);
+      const wPx = Math.max(5, Math.min(16, props.hDraw * scale));
+      const x1 = mx(nodes[nA].x), y1 = my(nodes[nA].y);
+      const x2 = mx(nodes[nB].x), y2 = my(nodes[nB].y);
+      s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${armColor}" stroke-width="${wPx}" stroke-linecap="round" opacity="${i % 2 ? 0.78 : 1}"/>`;
+      // etiqueta del tramo desplazada perpendicularmente
+      const mxx = (x1 + x2) / 2, myy = (y1 + y2) / 2;
+      const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+      const px = -(y2 - y1) / len, py = (x2 - x1) / len;
+      s += `<text x="${mxx + px * 20}" y="${myy + py * 20}" font-size="12" fill="#546e7a" text-anchor="middle">T${i + 1} · ${(seg.L / 10).toFixed(0)} cm${seg.angle ? ` · ${seg.angle}°` : ""}</text>`;
+      if (i > 0 || seg.joint !== "empotramiento") s += this.jointSymbol(seg.joint, x1, y1);
+    });
 
-    // Deformada exagerada: elástica y(x) = Px²(3L−x)/6EI + qx²(6L²−4Lx+x²)/24EI
-    const EI = seg.material.E * seg.profile.I;
-    const P = model.tipLoad, q = res.q;
-    if (res.delta > 0) {
-      const exag = 60 / res.delta; // la punta baja 60 px en pantalla
-      let path = `M ${x0 + 12} ${y0}`;
-      for (let i = 1; i <= 24; i++) {
-        const x = (L * i) / 24;
-        const y = P * x * x * (3 * L - x) / (6 * EI)
-                + q * x * x * (6 * L * L - 4 * L * x + x * x) / (24 * EI);
-        path += ` L ${(x0 + 12 + x * scale).toFixed(1)} ${(y0 + y * exag).toFixed(1)}`;
-      }
-      s += `<path d="${path}" fill="none" stroke="#7b1fa2" stroke-width="2" stroke-dasharray="6 4" opacity="0.8"/>`;
-      s += `<text x="${x0 + 30}" y="${y0 + 85}" font-size="12" fill="#7b1fa2">deformada ×${Math.round(exag)} (exagerada)</text>`;
+    // Apoyo en el extremo final
+    const endNode = nodes[nodes.length - 1];
+    if (model.support !== "ninguno") {
+      s += this.supportSymbol(model.support, mx(endNode.x), my(endNode.y));
     }
 
-    // TV en la punta + flecha de carga
-    const tvW = 110, tvH = 64;
-    s += `<line x1="${xTip}" y1="${y0}" x2="${xTip}" y2="${y0 + 26}" stroke="#37474f" stroke-width="4"/>`;
-    s += `<rect x="${xTip - tvW / 2}" y="${y0 + 26}" width="${tvW}" height="${tvH}" rx="4" fill="#263238"/>`;
-    s += `<rect x="${xTip - tvW / 2 + 5}" y="${y0 + 31}" width="${tvW - 10}" height="${tvH - 10}" rx="2" fill="#4fc3f7" opacity="0.7"/>`;
-    const yArr = y0 + 26 + tvH + 8;
-    s += `<line x1="${xTip}" y1="${yArr}" x2="${xTip}" y2="${yArr + 40}" stroke="var(--c-bad)" stroke-width="3"/>`;
-    s += `<polygon points="${xTip - 6},${yArr + 38} ${xTip + 6},${yArr + 38} ${xTip},${yArr + 50}" fill="var(--c-bad)"/>`;
-    s += `<text x="${xTip + 12}" y="${yArr + 36}" font-size="13" fill="var(--c-bad)">P = ${(inputs.pesoTV + inputs.pesoSoporte).toFixed(1)} kg</text>`;
+    // Deformada exagerada (más visible)
+    if (!res.mecanismo) {
+      const maxU = Math.max(...res.samples.map(p => Math.hypot(p.ux, p.uy)), 1e-9);
+      const exag = 70 / (maxU * scale);
+      let path = "";
+      res.samples.forEach((p, i) => {
+        path += `${i ? "L" : "M"} ${mx(p.x + p.ux * exag).toFixed(1)} ${my(p.y + p.uy * exag).toFixed(1)} `;
+      });
+      s += `<path d="${path}" fill="none" stroke="#7b1fa2" stroke-width="2.5" stroke-dasharray="7 4" opacity="0.9"/>`;
+      s += `<text x="${wallX + 18}" y="${VH - 8}" font-size="12" fill="#7b1fa2">deformada ×${Math.round(exag)} (exagerada)</text>`;
+    } else {
+      s += `<text x="${(wallX + mx(xmax)) / 2}" y="26" font-size="14" font-weight="bold" fill="#6a1b9a" text-anchor="middle">⚠ MECANISMO INESTABLE</text>`;
+      s += `<text x="${(wallX + mx(xmax)) / 2}" y="42" font-size="12" fill="#6a1b9a" text-anchor="middle">las conexiones/apoyos no equilibran la estructura</text>`;
+    }
 
-    // Cota de longitud
-    const yDim = 90;
-    s += `<line x1="${x0 + 12}" y1="${yDim}" x2="${xTip}" y2="${yDim}" stroke="#546e7a" stroke-width="1"/>`;
-    s += `<line x1="${x0 + 12}" y1="${yDim - 6}" x2="${x0 + 12}" y2="${yDim + 6}" stroke="#546e7a" stroke-width="1"/>`;
-    s += `<line x1="${xTip}" y1="${yDim - 6}" x2="${xTip}" y2="${yDim + 6}" stroke="#546e7a" stroke-width="1"/>`;
-    s += `<text x="${(x0 + 12 + xTip) / 2}" y="${yDim - 8}" font-size="13" fill="#546e7a" text-anchor="middle">L = ${(L / 10).toFixed(0)} cm</text>`;
+    // TV DE PERFIL (vista lateral): se ve el canto del panel, pantalla hacia
+    // la habitación (derecha). Anclada por el centro del panel en su nudo.
+    const tv = nodes[model.tvNode];
+    const tx = mx(tv.x), ty = my(tv.y);
+    const tvHalf = 38, depth = 11;
+    s += `<line x1="${tx}" y1="${ty}" x2="${tx + 10}" y2="${ty}" stroke="#37474f" stroke-width="3"/>`; // soporte
+    s += `<rect x="${tx + 10}" y="${ty - tvHalf}" width="${depth}" height="${tvHalf * 2}" rx="2" fill="#263238"/>`; // canto del panel
+    s += `<rect x="${tx + 10 + depth}" y="${ty - tvHalf + 3}" width="2.5" height="${tvHalf * 2 - 6}" fill="#4fc3f7"/>`; // pantalla (cara a la habitación)
+    s += `<circle cx="${tx}" cy="${ty}" r="3" fill="#fff" stroke="#263238"/>`; // nudo = centro del panel
+    const xCG = tx + 10 + depth / 2, yArr = ty + tvHalf + 6;
+    s += `<line x1="${xCG}" y1="${yArr}" x2="${xCG}" y2="${yArr + 30}" stroke="var(--c-bad)" stroke-width="3"/>`;
+    s += `<polygon points="${xCG - 6},${yArr + 28} ${xCG + 6},${yArr + 28} ${xCG},${yArr + 40}" fill="var(--c-bad)"/>`;
+    s += `<text x="${xCG + 10}" y="${yArr + 26}" font-size="13" fill="var(--c-bad)">P = ${(inputs.pesoTV + inputs.pesoSoporte).toFixed(1)} kg</text>`;
+
+    if (extendido) {
+      s += `<text x="${wallX + 18}" y="22" font-size="12" fill="#ef6c00">vista en máxima extensión (posición más desfavorable)</text>`;
+    }
 
     svg.innerHTML = s;
   },
 };
 
 /* =====================================================================
- * 6. UI (solo en navegador)
+ * 6b. VISTA 3D (Three.js, carga perezosa desde CDN)
+ * =================================================================== */
+function loadScript(src) {
+  return new Promise((ok, ko) => {
+    const sc = document.createElement("script");
+    sc.src = src; sc.onload = ok; sc.onerror = () => ko(new Error(src));
+    document.head.appendChild(sc);
+  });
+}
+async function ensureThree() {
+  if (window.THREE && window.THREE.OrbitControls) return;
+  await loadScript("https://unpkg.com/three@0.147.0/build/three.min.js");
+  await loadScript("https://unpkg.com/three@0.147.0/examples/js/controls/OrbitControls.js");
+}
+
+const Sketch3D = {
+  inited: false,
+  geomKey: "",
+
+  init(container) {
+    if (this.inited) return;
+    const T = window.THREE;
+    this.scene = new T.Scene();
+    this.scene.background = new T.Color(0xf3f6fa); // fondo claro, neutro
+    this.camera = new T.PerspectiveCamera(45, container.clientWidth / 440, 1, 50000);
+    this.renderer = new T.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(container.clientWidth, 440);
+    this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+    container.appendChild(this.renderer.domElement);
+    this.scene.add(new T.AmbientLight(0xffffff, 0.55));
+    const dl = new T.DirectionalLight(0xffffff, 0.9);
+    dl.position.set(1500, 2500, 2000);
+    this.scene.add(dl);
+    const fill = new T.DirectionalLight(0xcfe0f0, 0.35); // relleno frío desde el lado opuesto
+    fill.position.set(-1200, 800, -1500);
+    this.scene.add(fill);
+    this.group = new T.Group();
+    this.scene.add(this.group);
+    this.controls = new T.OrbitControls(this.camera, this.renderer.domElement);
+    // Órbita amplia (evita solo quedar completamente detrás de la pared)
+    this.controls.minAzimuthAngle = -2.6;
+    this.controls.maxAzimuthAngle = 2.6;
+    this.controls.minPolarAngle = 0.1;
+    this.controls.maxPolarAngle = 3.0;
+    this.controls.addEventListener("change", () => this.renderer.render(this.scene, this.camera));
+    // Picking de pivotes: clic (sin arrastre) sobre el cilindro azul
+    this.raycaster = new T.Raycaster();
+    this.pointer = new T.Vector2();
+    this.jointMeshes = [];
+    this.selectedSeg = null;
+    const canvas = this.renderer.domElement;
+    let downPos = null;
+    canvas.addEventListener("pointerdown", (e) => { downPos = [e.clientX, e.clientY]; });
+    canvas.addEventListener("pointerup", (e) => {
+      const wasClick = downPos && Math.hypot(e.clientX - downPos[0], e.clientY - downPos[1]) < 6;
+      downPos = null;
+      if (wasClick) this.onPivotClick?.(this.pick(e));
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      canvas.style.cursor = this.pick(e) != null ? "pointer" : "grab";
+    });
+    window.addEventListener("resize", () => {
+      if (container.offsetParent === null) return;
+      this.camera.aspect = container.clientWidth / 440;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(container.clientWidth, 440);
+      this.renderer.render(this.scene, this.camera);
+    });
+    this.inited = true;
+  },
+
+  /** Sección 2D del perfil para extruir (centrada, en mm). */
+  profileShape(tipo, d) {
+    const T = window.THREE;
+    const sh = new T.Shape();
+    const rectPath = (p, x, y, w, h) => {
+      p.moveTo(x, y); p.lineTo(x + w, y); p.lineTo(x + w, y + h); p.lineTo(x, y + h); p.closePath();
+    };
+    if (tipo === "rect" || tipo === "cuadrado") {
+      const b = tipo === "cuadrado" ? d.a : d.b, h = tipo === "cuadrado" ? d.a : d.h;
+      rectPath(sh, -b / 2, -h / 2, b, h);
+      const hole = new T.Path();
+      rectPath(hole, -b / 2 + d.t, -h / 2 + d.t, b - 2 * d.t, h - 2 * d.t);
+      sh.holes.push(hole);
+    } else if (tipo === "redondo") {
+      sh.absarc(0, 0, d.D / 2, 0, Math.PI * 2, false);
+      const hole = new T.Path();
+      hole.absarc(0, 0, d.D / 2 - d.t, 0, Math.PI * 2, true);
+      sh.holes.push(hole);
+    } else if (tipo === "pletina") {
+      rectPath(sh, -d.b / 2, -d.h / 2, d.b, d.h);
+    } else { // angular
+      sh.moveTo(-d.b / 2, -d.h / 2);
+      sh.lineTo(-d.b / 2 + d.t, -d.h / 2);
+      sh.lineTo(-d.b / 2 + d.t, d.h / 2 - 0);
+      sh.lineTo(-d.b / 2, d.h / 2);
+      sh.closePath();
+      // ala horizontal
+      const sh2 = new T.Shape();
+      rectPath(sh2, -d.b / 2 + d.t, -d.h / 2, d.b - d.t, d.t);
+      sh.userDataExtra = sh2; // se extruye aparte
+    }
+    return sh;
+  },
+
+  pick(e) {
+    const r = this.renderer.domElement.getBoundingClientRect();
+    this.pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const hits = this.raycaster.intersectObjects(this.jointMeshes, false);
+    return hits.length ? hits[0].object.userData.segIdx : null;
+  },
+
+  update(inputs, model, res) {
+    if (!this.inited) return;
+    const T = window.THREE;
+    this.jointMeshes = [];
+    // Limpiar grupo anterior
+    while (this.group.children.length) {
+      const o = this.group.children.pop();
+      o.traverse?.(c => { c.geometry?.dispose(); c.material?.dispose?.(); });
+      this.group.remove(o);
+    }
+    const armColorHex = res.mecanismo ? 0x6a1b9a : res.apto ? 0x2e7d32 : 0xc62828;
+    const matArm = new T.MeshStandardMaterial({ color: armColorHex, metalness: 0.45, roughness: 0.5 });
+    const matSteel = new T.MeshStandardMaterial({ color: 0x90a4ae, metalness: 0.6, roughness: 0.4 });
+    const nodes = model.nodes;
+    const last = nodes[nodes.length - 1];
+    // Tamaño estable: basado en la longitud total desarrollada (no cambia al
+    // plegar las articulaciones), de modo que la pared no se redimensiona.
+    const extent = model.segs.reduce((a, sg) => a + sg.L, 0);
+    const size = extent;
+
+    // Pared (plano x=0): cara frontal exactamente en x=0, misma anchura que el suelo
+    const wallSide = extent * 1.7;
+    const wall = new T.Mesh(new T.BoxGeometry(20, wallSide, wallSide),
+      new T.MeshStandardMaterial({ color: 0x6f8aa3, roughness: 0.85, transparent: true, opacity: 0.4 }));
+    wall.position.set(-10, 0, 0); // cara frontal en x=0
+    this.group.add(wall);
+    const wallEdges = new T.LineSegments(
+      new T.EdgesGeometry(new T.BoxGeometry(20, wallSide, wallSide)),
+      new T.LineBasicMaterial({ color: 0x3d5366 }));
+    wallEdges.position.copy(wall.position);
+    this.group.add(wallEdges);
+    const nf = inputs.anclaje.nf || 2, nb = inputs.anclaje.n, sB = inputs.anclaje.s;
+    const plate = new T.Mesh(new T.BoxGeometry(10, (nf - 1) * sB + 60, (nb - 1) * sB + 60), matSteel);
+    plate.position.set(5, 0, 0);
+    this.group.add(plate);
+    for (let f = 0; f < nf; f++)
+      for (let c = 0; c < nb; c++) {
+        const bolt = new T.Mesh(new T.CylinderGeometry(4, 4, 26, 12), new T.MeshStandardMaterial({ color: 0x37474f }));
+        bolt.rotation.z = Math.PI / 2;
+        bolt.position.set(8, (f - (nf - 1) / 2) * sB, (c - (nb - 1) / 2) * sB);
+        this.group.add(bolt);
+      }
+
+    // Suelo: siempre visible, comparte anchura con la pared (wallSide) y se
+    // une a ella en la línea de intersección (x=0, y=-wallSide/2).
+    // El suelo se extiende desde x=0 hasta x=wallSide (hacia la habitación).
+    const floorY = -wallSide / 2; // borde inferior de la pared = nivel del suelo
+    const floor = new T.Mesh(new T.BoxGeometry(wallSide, 12, wallSide),
+      new T.MeshStandardMaterial({ color: 0xc7ad8a, roughness: 0.95, transparent: true, opacity: 0.45 }));
+    floor.position.set(wallSide / 2, floorY - 6, 0); // top del suelo en floorY
+    this.group.add(floor);
+    const grid = new T.GridHelper(wallSide, 16, 0x8a7355, 0xa68f6f);
+    grid.position.set(wallSide / 2, floorY + 0.5, 0);
+    this.group.add(grid);
+    if (model.support !== "ninguno") {
+      const sup = model.support === "deslizante"
+        ? new T.Mesh(new T.SphereGeometry(12, 16, 12), matSteel)
+        : new T.Mesh(new T.ConeGeometry(14, 24, 4), matSteel);
+      sup.position.set(last.x, last.y - 12, last.z);
+      this.group.add(sup);
+    }
+
+    // Tramos extruidos con su sección real
+    model.segs.forEach((seg, i) => {
+      const e = model.elements[i * SUB];
+      const { ex, ey, ez } = elemAxes(e.dir);
+      const shape = this.profileShape(seg.tipo, seg.dims);
+      const parts = [shape];
+      if (shape.userDataExtra) parts.push(shape.userDataExtra);
+      const basis = new T.Matrix4().makeBasis(
+        new T.Vector3(...ez), new T.Vector3(...ey), new T.Vector3(...ex));
+      for (const p of parts) {
+        const geo = new T.ExtrudeGeometry(p, { depth: seg.L, bevelEnabled: false });
+        const mesh = new T.Mesh(geo, matArm);
+        mesh.applyMatrix4(basis);
+        mesh.position.set(nodes[i * SUB].x, nodes[i * SUB].y, nodes[i * SUB].z);
+        this.group.add(mesh);
+      }
+      // Símbolo de conexión al inicio del tramo
+      const n0 = nodes[i * SUB];
+      const joint = seg.joint;
+      if (i > 0 || joint !== "empotramiento") {
+        let jm = null;
+        if (joint === "pivote") {
+          const sel = this.selectedSeg === i;
+          jm = new T.Mesh(new T.CylinderGeometry(12, 12, 90, 16),
+            new T.MeshStandardMaterial({ color: sel ? 0xef6c00 : 0x1565c0, metalness: 0.5, roughness: 0.4 }));
+          jm.userData.segIdx = i;
+          this.jointMeshes.push(jm);
+        } else if (joint === "bisagra") {
+          jm = new T.Mesh(new T.CylinderGeometry(9, 9, 60, 16), matSteel);
+          jm.rotation.x = Math.PI / 2; // eje horizontal transversal
+          jm.rotation.order = "ZYX";
+        } else if (joint === "rotula") {
+          jm = new T.Mesh(new T.SphereGeometry(12, 16, 12), matSteel);
+        } else {
+          jm = new T.Mesh(new T.BoxGeometry(14, 50, 50), matSteel);
+        }
+        jm.position.set(n0.x, n0.y, n0.z);
+        this.group.add(jm);
+      }
+    });
+
+    // TV anclada por su PARTE TRASERA al nudo (donde el brazo sujeta el VESA);
+    // el cuerpo y la pantalla salen hacia la habitación. Orientada según el
+    // rumbo del tramo que la soporta: al plegar ese tramo, la TV gira con él.
+    const tv = nodes[model.tvNode];
+    const tvDir = model.elements[(model.tvSeg + 1) * SUB - 1].dir;
+    const horiz = Math.hypot(tvDir[0], tvDir[2]);
+    const yaw = horiz > 1e-6 ? -Math.atan2(tvDir[2], tvDir[0]) : 0;
+    const tvg = new T.Group();
+    const tvDepth = 46;
+    const tvBody = new T.Mesh(new T.BoxGeometry(tvDepth, 250, 440),
+      new T.MeshStandardMaterial({ color: 0x263238, roughness: 0.6 }));
+    tvBody.position.set(tvDepth / 2, 0, 0); // trasera en el nudo (x=0), sale hacia +x
+    tvg.add(tvBody);
+    const tvScreen = new T.Mesh(new T.BoxGeometry(4, 224, 410),
+      new T.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x1a4f63, roughness: 0.3, transparent: true, opacity: 0.62 }));
+    tvScreen.position.set(tvDepth, 0, 0); // pantalla en la cara frontal, hacia la habitación
+    tvg.add(tvScreen);
+    // pequeña placa de anclaje VESA en la trasera, sobre el nudo
+    const vesa = new T.Mesh(new T.BoxGeometry(6, 90, 90),
+      new T.MeshStandardMaterial({ color: 0x455a64, metalness: 0.5, roughness: 0.5 }));
+    vesa.position.set(3, 0, 0);
+    tvg.add(vesa);
+    tvg.position.set(tv.x, tv.y, tv.z);
+    tvg.rotation.y = yaw;
+    this.group.add(tvg);
+
+    // Deformada exagerada (más marcada)
+    if (!res.mecanismo) {
+      const maxU = Math.max(...res.samples.map(p => Math.hypot(p.ux, p.uy, p.uz)), 1e-9);
+      const exag = 0.14 * size / maxU;
+      const pts = res.samples.map(p => new T.Vector3(p.x + p.ux * exag, p.y + p.uy * exag, p.z + p.uz * exag));
+      const line = new T.Line(new T.BufferGeometry().setFromPoints(pts),
+        new T.LineDashedMaterial({ color: 0x7b1fa2, dashSize: 22, gapSize: 12, linewidth: 2 }));
+      line.computeLineDistances();
+      this.group.add(line);
+    }
+
+    // Encadrar la cámara solo si cambia la estructura (no al plegar u orbitar)
+    const key = model.segs.map(s => `${s.L}/${s.angle}`).join(";") + model.support;
+    if (key !== this.geomKey) {
+      this.geomKey = key;
+      const center = new T.Vector3(size * 0.45, -size * 0.1, 0);
+      this.camera.position.set(size * 1.5, size * 0.75, size * 1.75);
+      this.controls.target.copy(center);
+      this.controls.update();
+    }
+    this.renderer.render(this.scene, this.camera);
+  },
+};
+
+/* =====================================================================
+ * 7. VISTA PREVIA DE LA SECCIÓN
+ * Letras (h, b, t…) en el dibujo; los valores van en el pie de la
+ * tarjeta para que nada se recorte en pantallas pequeñas.
+ * =================================================================== */
+function sectionSVG(tipo, dims, size = 86) {
+  const pad = 16, span = size - 2 * pad;
+  const fill = "#78909c", stroke = "#455a64";
+  let shapes = "", labels = "";
+  const dimLine = (x1, y1, x2, y2, letter, tx, ty) =>
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#1565c0" stroke-width="1"/>` +
+    `<text x="${tx}" y="${ty}" font-size="10" fill="#1565c0" text-anchor="middle">${letter}</text>`;
+
+  if (tipo === "rect" || tipo === "cuadrado") {
+    const b = tipo === "cuadrado" ? dims.a : dims.b;
+    const h = tipo === "cuadrado" ? dims.a : dims.h;
+    const k = span / Math.max(b, h);
+    const w = b * k, hh = h * k, tt = Math.max(1.5, dims.t * k);
+    const x = (size - w) / 2, y = (size - hh) / 2;
+    shapes = `<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="${fill}" stroke="${stroke}"/>`
+           + `<rect x="${x + tt}" y="${y + tt}" width="${w - 2 * tt}" height="${hh - 2 * tt}" fill="#fff"/>`;
+    labels = dimLine(x - 6, y, x - 6, y + hh, tipo === "cuadrado" ? "a" : "h", x - 11, y + hh / 2 + 3)
+           + dimLine(x, y + hh + 6, x + w, y + hh + 6, tipo === "cuadrado" ? "" : "b", x + w / 2, y + hh + 16)
+           + `<text x="${x + w / 2}" y="${y - 4}" font-size="10" fill="#c62828" text-anchor="middle">t</text>`;
+  } else if (tipo === "redondo") {
+    const k = span / dims.D, R = dims.D * k / 2, r = (dims.D / 2 - dims.t) * k;
+    const c = size / 2;
+    shapes = `<circle cx="${c}" cy="${c}" r="${R}" fill="${fill}" stroke="${stroke}"/>`
+           + `<circle cx="${c}" cy="${c}" r="${Math.max(1, r)}" fill="#fff"/>`;
+    labels = dimLine(c - R, c, c + R, c, "D", c, c - 4)
+           + `<text x="${c}" y="${c - R + 2}" font-size="10" fill="#c62828" text-anchor="middle">t</text>`;
+  } else if (tipo === "pletina") {
+    const k = span / Math.max(dims.b, dims.h);
+    const w = Math.max(3, dims.b * k), hh = dims.h * k;
+    const x = (size - w) / 2, y = (size - hh) / 2;
+    shapes = `<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="${fill}" stroke="${stroke}"/>`;
+    labels = dimLine(x - 6, y, x - 6, y + hh, "h", x - 11, y + hh / 2 + 3)
+           + dimLine(x, y + hh + 6, x + w, y + hh + 6, "b", x + w / 2, y + hh + 16);
+  } else if (tipo === "angular") {
+    const k = span / Math.max(dims.b, dims.h);
+    const w = dims.b * k, hh = dims.h * k, tt = Math.max(2, dims.t * k);
+    const x = (size - w) / 2, y = (size - hh) / 2;
+    shapes = `<path d="M ${x} ${y} h ${tt} v ${hh - tt} h ${w - tt} v ${tt} h ${-w} Z" fill="${fill}" stroke="${stroke}"/>`;
+    labels = dimLine(x - 6, y, x - 6, y + hh, "h", x - 11, y + hh / 2 + 3)
+           + dimLine(x, y + hh + 6, x + w, y + hh + 6, "b", x + w / 2, y + hh + 16)
+           + `<text x="${x + tt + 8}" y="${y + 10}" font-size="10" fill="#c62828">t</text>`;
+  }
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">${shapes}${labels}</svg>`;
+}
+
+/** Pie con los valores de las dimensiones, p. ej. "h=40 · b=20 · t=2 mm". */
+function sectionCaption(tipo, dims) {
+  return PROFILE_TYPES[tipo].params
+    .map(p => `${p.key}=${dims[p.key]}`)
+    .join(" · ") + " mm";
+}
+
+/* =====================================================================
+ * 8. UI (solo en navegador)
  * =================================================================== */
 if (typeof document !== "undefined") {
   const $ = (id) => document.getElementById(id);
   const els = {
-    pesoTV: $("in-peso-tv"), pesoSoporte: $("in-peso-soporte"), L: $("in-longitud"),
-    tipo: $("in-tipo"), dims: $("in-dims"), customDims: $("custom-dims"),
+    pesoTV: $("in-peso-tv"), pesoSoporte: $("in-peso-soporte"), tvSeg: $("in-tv-seg"),
+    segments: $("segments"), addSeg: $("btn-add-seg"), support: $("in-support"),
+    filas: $("in-filas"), wallJoint: $("in-wall-joint"),
     material: $("in-material"), fs: $("in-fs"),
     flechaLim: $("in-flecha-lim"), flechaAbs: $("in-flecha-abs"), fieldFlechaAbs: $("field-flecha-abs"),
-    sepPernos: $("in-sep-pernos"), nPernos: $("in-n-pernos"),
-    error: $("input-error"), svg: $("sketch-svg"),
-    verdict: $("verdict"), grid: $("results-grid"), suggestion: $("suggestion"),
+    sepPernos: $("in-sep-pernos"), nPernos: $("in-n-pernos"), muro: $("in-muro"),
+    error: $("input-error"), svg: $("sketch-svg"), legend: $("joint-legend"),
+    view2d: $("view-2d"), view3d: $("view-3d"), c3d: $("sketch-3d"),
+    threeError: $("three-error"), hint3d: $("hint-3d"),
+    foldOverlay: $("fold-overlay"), foldRange: $("fold-range"),
+    foldSeg: $("fold-seg"), foldVal: $("fold-val"),
+    verdict: $("verdict"), anchorReco: $("anchor-reco"), grid: $("results-grid"), suggestion: $("suggestion"),
+  };
+  const MAX_SEGMENTS = 6;
+
+  /* Estado de los tramos. dimsIdx = índice de catálogo o "custom". */
+  const state = {
+    segments: [
+      { L: 300, angle: 0, planAngle: 0, tipo: "rect", dimsIdx: 1, custom: null, joint: "empotramiento" },
+      { L: 300, angle: 0, planAngle: 0, tipo: "rect", dimsIdx: 0, custom: null, joint: "pivote" },
+    ],
+    tvSeg: 1,
+    view3d: false,
   };
 
-  function fillSelect(sel, options) {
-    sel.innerHTML = options.map(o => `<option value="${o.value}">${o.label}</option>`).join("");
+  const segDims = (s) => s.dimsIdx === "custom" ? s.custom : CATALOG[s.tipo][s.dimsIdx].dims;
+
+  /* ---------- Tramos: render de tarjetas ---------- */
+  function renderSegments() {
+    state.tvSeg = Math.min(state.tvSeg, state.segments.length - 1);
+    els.segments.innerHTML = state.segments.map((s, i) => {
+      const dimOpts = CATALOG[s.tipo].map((e, j) => `<option value="${j}">${e.label}</option>`).join("")
+                    + `<option value="custom">Personalizado…</option>`;
+      const jointOpts = Object.entries(JOINTS)
+        .map(([k, j]) => `<option value="${k}">${j.nombre}</option>`).join("");
+      const customHTML = s.dimsIdx !== "custom" ? "" : `
+        <div class="custom-dims">
+          ${PROFILE_TYPES[s.tipo].params.map(p => `
+            <div class="field">
+              <label for="seg${i}-dim-${p.key}">${p.label} (mm)</label>
+              <input type="number" id="seg${i}-dim-${p.key}" value="${s.custom[p.key]}" min="0.5" step="0.5">
+            </div>`).join("")}
+        </div>`;
+      return `
+      <div class="seg-card" data-i="${i}">
+        <div class="seg-head">
+          <strong>Tramo ${i + 1}</strong>
+          ${state.segments.length > 1 ? `<button type="button" id="seg${i}-del">✕ Quitar</button>` : ""}
+        </div>
+        ${i === 0 ? "" : `
+        <div class="field">
+          <label for="seg${i}-joint">Conexión con el tramo ${i}</label>
+          <select id="seg${i}-joint">${jointOpts}</select>
+        </div>`}
+        <div class="seg-body">
+          <div>
+            <div class="row2">
+              <div class="field">
+                <label for="seg${i}-L">Longitud (cm)</label>
+                <input type="number" id="seg${i}-L" value="${s.L / 10}" min="1" step="1">
+              </div>
+              <div class="field">
+                <label for="seg${i}-ang">Ángulo (°)</label>
+                <input type="number" id="seg${i}-ang" value="${s.angle}" min="-180" max="180" step="5"
+                  title="0 = horizontal · −90 = hacia el suelo · +90 = hacia arriba">
+              </div>
+            </div>
+            <div class="field">
+              <label for="seg${i}-tipo">Tipo de perfil</label>
+              <select id="seg${i}-tipo">
+                ${Object.entries(PROFILE_TYPES).map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join("")}
+              </select>
+            </div>
+            <div class="field">
+              <label for="seg${i}-dims">Dimensiones (mm)</label>
+              <select id="seg${i}-dims">${dimOpts}</select>
+            </div>
+          </div>
+          <div class="section-preview" id="seg${i}-prev"></div>
+        </div>
+        ${customHTML}
+      </div>`;
+    }).join("");
+
+    // Selector del nudo de la TV
+    els.tvSeg.innerHTML = state.segments
+      .map((s, i) => `<option value="${i}">tramo ${i + 1}</option>`).join("");
+    els.tvSeg.value = String(state.tvSeg);
+
+    // Valores y listeners por tramo
+    state.segments.forEach((s, i) => {
+      $(`seg${i}-tipo`).value = s.tipo;
+      $(`seg${i}-dims`).value = String(s.dimsIdx);
+      if (i > 0) $(`seg${i}-joint`).value = s.joint;
+      updatePreview(i);
+
+      $(`seg${i}-L`).addEventListener("input", () => {
+        s.L = parseFloat($(`seg${i}-L`).value) * 10;
+        recalc();
+      });
+      $(`seg${i}-ang`).addEventListener("input", () => {
+        s.angle = parseFloat($(`seg${i}-ang`).value) || 0;
+        recalc();
+      });
+      $(`seg${i}-tipo`).addEventListener("change", () => {
+        s.tipo = $(`seg${i}-tipo`).value;
+        s.dimsIdx = 0;
+        s.custom = null;
+        renderSegments(); recalc();
+      });
+      $(`seg${i}-dims`).addEventListener("change", () => {
+        const v = $(`seg${i}-dims`).value;
+        if (v === "custom") {
+          s.custom = { ...CATALOG[s.tipo][s.dimsIdx === "custom" ? 0 : s.dimsIdx].dims };
+          s.dimsIdx = "custom";
+          renderSegments();
+        } else {
+          s.dimsIdx = parseInt(v, 10);
+          updatePreview(i);
+        }
+        recalc();
+      });
+      if (i > 0) $(`seg${i}-joint`).addEventListener("change", () => {
+        s.joint = $(`seg${i}-joint`).value;
+        if (s.joint !== "pivote") s.planAngle = 0; // el plegado requiere pivote
+        renderSegments(); recalc();
+      });
+      if (s.dimsIdx === "custom") {
+        for (const p of PROFILE_TYPES[s.tipo].params) {
+          $(`seg${i}-dim-${p.key}`).addEventListener("input", () => {
+            s.custom[p.key] = parseFloat($(`seg${i}-dim-${p.key}`).value);
+            updatePreview(i);
+            recalc();
+          });
+        }
+      }
+      const del = $(`seg${i}-del`);
+      if (del) del.addEventListener("click", () => {
+        state.segments.splice(i, 1);
+        renderSegments(); recalc();
+      });
+    });
+    els.addSeg.disabled = state.segments.length >= MAX_SEGMENTS;
   }
 
-  function populateTipos() {
-    fillSelect(els.tipo, Object.entries(PROFILE_TYPES).map(([k, v]) => ({ value: k, label: v.nombre })));
-  }
-  function populateMateriales() {
-    fillSelect(els.material, Object.entries(MATERIALS).map(([k, v]) => ({ value: k, label: v.nombre })));
-  }
-  function populateDims(tipo, keepCustom) {
-    const opts = CATALOG[tipo].map((e, i) => ({ value: String(i), label: e.label }));
-    opts.push({ value: "custom", label: "Personalizado…" });
-    fillSelect(els.dims, opts);
-    if (keepCustom) els.dims.value = "custom";
-    renderCustomDims(tipo);
-  }
-  function renderCustomDims(tipo) {
-    const custom = els.dims.value === "custom";
-    els.customDims.hidden = !custom;
-    if (!custom) { els.customDims.innerHTML = ""; return; }
-    const base = CATALOG[tipo][0].dims;
-    els.customDims.innerHTML = PROFILE_TYPES[tipo].params.map(p => `
-      <div class="field">
-        <label for="dim-${p.key}">${p.label} (mm)</label>
-        <input type="number" id="dim-${p.key}" value="${base[p.key]}" min="0.5" step="0.5">
-      </div>`).join("");
-    for (const p of PROFILE_TYPES[tipo].params) {
-      $(`dim-${p.key}`).addEventListener("input", recalc);
-    }
+  function updatePreview(i) {
+    const s = state.segments[i];
+    const d = segDims(s);
+    const ok = d && Object.values(d).every(v => v > 0);
+    $(`seg${i}-prev`).innerHTML = (ok ? sectionSVG(s.tipo, d) : "")
+      + `<div class="cap">${PROFILE_TYPES[s.tipo].nombre}<br>${ok ? sectionCaption(s.tipo, d) : ""}</div>`;
   }
 
+  /* ---------- Leyenda de conexiones y apoyos candidatos ---------- */
+  function renderLegend() {
+    const sym = (svgInner) => `<svg width="34" height="34" viewBox="-17 -17 34 34">${svgInner}</svg>`;
+    const wallSym = '<line x1="-9" y1="-13" x2="-9" y2="13" stroke="#37474f" stroke-width="3"/><line x1="-9" y1="-9" x2="-15" y2="-14" stroke="#78909c" stroke-width="1.5"/><line x1="-9" y1="-2" x2="-15" y2="-7" stroke="#78909c" stroke-width="1.5"/><line x1="-9" y1="5" x2="-15" y2="0" stroke="#78909c" stroke-width="1.5"/><line x1="-9" y1="12" x2="-15" y2="7" stroke="#78909c" stroke-width="1.5"/><line x1="-9" y1="0" x2="13" y2="0" stroke="#37474f" stroke-width="3"/>';
+    let html = Object.entries(JOINTS).map(([k, j]) =>
+      `<li>${sym(k === "empotramiento" ? wallSym : Sketch.jointSymbol(k, 0, 0))}<span><strong>${j.nombre}</strong>${j.transmiteMomento ? "" : " ⚠"} — ${j.desc}</span></li>`
+    ).join("");
+    html += ["deslizante", "articulado"].map(k =>
+      `<li>${sym(Sketch.supportSymbol(k, 0, -8))}<span><strong>Apoyo ${SUPPORTS[k].nombre.toLowerCase()}</strong> — ${SUPPORTS[k].desc}</span></li>`
+    ).join("");
+    els.legend.innerHTML = html;
+  }
+
+  /* ---------- Entradas globales ---------- */
   function getInputs() {
-    const tipo = els.tipo.value;
-    let dims;
-    if (els.dims.value === "custom") {
-      dims = {};
-      for (const p of PROFILE_TYPES[tipo].params) dims[p.key] = parseFloat($(`dim-${p.key}`).value);
-    } else {
-      dims = { ...CATALOG[tipo][parseInt(els.dims.value, 10)].dims };
-    }
     return {
       pesoTV: parseFloat(els.pesoTV.value),
       pesoSoporte: parseFloat(els.pesoSoporte.value),
-      L: parseFloat(els.L.value) * 10, // cm → mm
-      tipo, dims,
+      tvSeg: parseInt(els.tvSeg.value, 10),
       material: els.material.value,
-      anclaje: { s: parseFloat(els.sepPernos.value), n: parseInt(els.nPernos.value, 10) },
+      segments: state.segments.map((s, i) => ({
+        L: s.L, angle: s.angle, planAngle: s.planAngle || 0, tipo: s.tipo, dims: segDims(s),
+        joint: i === 0 ? els.wallJoint.value : s.joint,
+      })),
+      endSupport: els.support.value,
+      muro: els.muro.value,
+      anclaje: {
+        s: parseFloat(els.sepPernos.value),
+        n: parseInt(els.nPernos.value, 10),
+        nf: parseInt(els.filas.value, 10),
+      },
     };
   }
-  function getCriteria(L) {
-    const FS = parseFloat(els.fs.value);
+  function getCriteria() {
     const abs = els.flechaLim.value === "abs";
     els.fieldFlechaAbs.hidden = !abs;
     return {
-      FS,
+      FS: parseFloat(els.fs.value),
       deltaLimRatio: abs ? null : parseFloat(els.flechaLim.value),
       deltaLimAbs: abs ? parseFloat(els.flechaAbs.value) : null,
     };
@@ -717,13 +1807,17 @@ if (typeof document !== "undefined") {
     const errs = [];
     if (!(inputs.pesoTV >= 0)) errs.push("El peso de la TV debe ser ≥ 0.");
     if (!(inputs.pesoTV + inputs.pesoSoporte > 0)) errs.push("La carga total debe ser positiva.");
-    if (!(inputs.L > 0)) errs.push("La longitud del brazo debe ser positiva.");
-    for (const [k, v] of Object.entries(inputs.dims)) {
-      if (!(v > 0)) errs.push(`La dimensión "${k}" debe ser positiva.`);
-    }
-    if (errs.length === 0 && !PROFILE_TYPES[inputs.tipo].valida(inputs.dims)) {
-      errs.push("Dimensiones incoherentes: el espesor es demasiado grande para el perfil.");
-    }
+    inputs.segments.forEach((s, i) => {
+      if (!(s.L > 0)) errs.push(`Tramo ${i + 1}: la longitud debe ser positiva.`);
+      if (!(s.angle >= -180 && s.angle <= 180)) errs.push(`Tramo ${i + 1}: el ángulo debe estar entre −180° y 180°.`);
+      if (!(s.planAngle >= -90 && s.planAngle <= 90)) errs.push(`Tramo ${i + 1}: el giro en planta debe estar entre −90° y 90°.`);
+      for (const [k, v] of Object.entries(s.dims)) {
+        if (!(v > 0)) errs.push(`Tramo ${i + 1}: la dimensión "${k}" debe ser positiva.`);
+      }
+      if (Object.values(s.dims).every(v => v > 0) && !PROFILE_TYPES[s.tipo].valida(s.dims)) {
+        errs.push(`Tramo ${i + 1}: espesor demasiado grande para el perfil.`);
+      }
+    });
     if (!(criteria.FS >= 1)) errs.push("El factor de seguridad debe ser ≥ 1.");
     if (criteria.deltaLimAbs != null && !(criteria.deltaLimAbs > 0)) errs.push("El límite de flecha absoluto debe ser positivo.");
     if (!(inputs.anclaje.s > 0)) errs.push("La separación entre filas de pernos debe ser positiva.");
@@ -741,53 +1835,107 @@ if (typeof document !== "undefined") {
   }
 
   function renderResults(inputs, res, bolts, best) {
+    if (res.mecanismo) {
+      els.verdict.className = "inestable";
+      els.verdict.textContent = "⚠ INESTABLE (mecanismo)";
+      els.grid.innerHTML = `<div class="rcard" style="grid-column:1/-1">
+        <div class="rtitle">Estructura no calculable</div>
+        <div class="rvalue">Las conexiones y apoyos no equilibran la estructura</div>
+        <div class="rsub">Una bisagra o rótula libera el momento y ningún otro apoyo lo compensa.
+        Cambia la conexión por un <strong>pivote de eje vertical</strong> o un <strong>empotramiento</strong>,
+        o añade un <strong>apoyo al suelo</strong> en el extremo (deslizante o articulado).</div></div>`;
+      els.anchorReco.className = "";
+      els.anchorReco.innerHTML = "";
+      els.suggestion.innerHTML = "";
+      return;
+    }
+
+    // Recomendación destacada de taco y tornillo
+    const reco = recommendAnchor(bolts, inputs.muro);
+    if (reco.anchor) {
+      els.anchorReco.className = "ok";
+      els.anchorReco.innerHTML =
+        `🔩 <strong>Anclaje recomendado</strong> — muro de ${reco.wall.nombre.toLowerCase()}:` +
+        `<div class="big">${reco.anchor.taco} + tornillo ${reco.anchor.tornillo} (×${inputs.anclaje.nf * inputs.anclaje.n})</div>` +
+        `Demanda por perno: ${fmt(reco.Td, 1)} kgf de arranque y ${fmt(reco.Vd, 1)} kgf de cortante · ` +
+        `utilización del anclaje ${fmt(reco.util * 100, 0)} %` +
+        `<div class="note">Capacidades orientativas de servicio; confirma con la ficha técnica del fabricante del taco.` +
+        `${reco.wall.nota ? " " + reco.wall.nota : ""}</div>`;
+    } else {
+      els.anchorReco.className = "ko";
+      els.anchorReco.innerHTML =
+        `🔩 <strong>Anclaje en ${reco.wall.nombre.toLowerCase()}:</strong>` +
+        `<div class="big">Ningún taco habitual soporta ${fmt(reco.Td, 1)} kgf de arranque por perno</div>` +
+        `Aumenta la separación entre filas de pernos o el nº de pernos por fila, añade un apoyo al suelo, ` +
+        `o ancla a un elemento más resistente (muro portante, montantes).` +
+        `<div class="note">${reco.wall.nota || ""}</div>`;
+    }
+
     els.verdict.className = res.apto ? "apto" : "noapto";
     els.verdict.textContent = res.apto ? "✓ APTO" : "✗ NO APTO";
 
-    els.grid.innerHTML =
-      rcard("Flecha en punta",
+    const segList = res.segChecks
+      .map((c, i) => `T${i + 1}: ${fmt(c.sigma, 0)} MPa`)
+      .join(" · ");
+
+    let cards =
+      rcard("Flecha en el nudo de la TV",
         `${fmt(res.delta, 2)} mm`,
-        `límite ${fmt(res.deltaLim, 2)} mm · utilización ${fmt(res.utilDefl * 100, 0)} %`,
+        `límite ${fmt(res.deltaLim, 2)} mm (ref. ${fmt(res.Lref / 10, 0)} cm) · utilización ${fmt(res.utilDefl * 100, 0)} %`,
         res.utilDefl) +
-      rcard("Tensión máxima",
+      rcard(`Tensión máx. von Mises (tramo ${res.iCrit + 1})`,
         `${fmt(res.sigma, 1)} MPa`,
-        `admisible ${fmt(res.sigmaAdm, 1)} MPa · utilización ${fmt(res.utilStress * 100, 0)} %`,
+        `admisible ${fmt(res.sigmaAdm, 1)} MPa · ${segList}`,
         res.utilStress) +
-      rcard("Reacciones en el empotramiento",
+      rcard("Reacciones en la pared",
         `M = ${fmt(res.M / 1000, 1)} N·m`,
-        `cortante V = ${fmt(res.V, 1)} N`) +
+        `V = ${fmt(res.V, 1)} N${Math.abs(res.H) > 0.5 ? ` · H = ${fmt(res.H, 1)} N` : ""}` +
+        `${res.My > 500 ? ` · M<sub>vert</sub> = ${fmt(res.My / 1000, 1)} N·m` : ""}` +
+        `${res.Mx > 500 ? ` · torsor = ${fmt(res.Mx / 1000, 1)} N·m` : ""}`) +
       rcard("Fuerzas por perno",
         `Tracción ${fmt(bolts.tensionPerno, 0)} N`,
         `≈ ${fmt(bolts.tensionPerno / G, 1)} kgf de arranque · cortante ${fmt(bolts.cortantePerno, 0)} N`) +
-      rcard("Peso propio del perfil",
-        `${fmt(res.pesoPropio, 2)} kg/m`,
-        `carga distribuida q = ${fmt(res.q * 1000, 2)} N/m`);
+      rcard("Peso propio de la estructura",
+        `${fmt(res.pesoTotal, 2)} kg`,
+        inputs.segments.map((s, i) => `T${i + 1}: ${PROFILE_TYPES[s.tipo].nombre}`).join(" · "));
+
+    if (res.utilPandeo > 0) {
+      cards += rcard(`Pandeo (tramo ${res.iPand + 1} comprimido)`,
+        `N = ${fmt(Math.abs(res.segChecks[res.iPand].Nmin), 0)} N`,
+        `N adm = ${fmt(res.segChecks[res.iPand].Ncr / getCriteria().FS, 0)} N (Euler, k=1) · utilización ${fmt(res.utilPandeo * 100, 0)} %`,
+        res.utilPandeo);
+    }
+    const Mtor = res.segChecks[res.iTor].Mtor;
+    if (Mtor > 500) {
+      const segTor = inputs.segments[res.iTor];
+      const abierta = segTor.tipo === "pletina" || segTor.tipo === "angular";
+      cards += rcard(`Torsión (tramo ${res.iTor + 1}, brazo plegado)`,
+        `T = ${fmt(Mtor / 1000, 1)} N·m`,
+        `incluida en la tensión de von Mises${abierta ? " · ⚠ sección abierta, muy débil a torsión" : ""}`);
+    }
+    els.grid.innerHTML = cards;
 
     if (best) {
-      const mismo = best.tipo === inputs.tipo && els.dims.value !== "custom" &&
-        CATALOG[best.tipo][parseInt(els.dims.value, 10)] === best.entry;
       els.suggestion.innerHTML =
-        `<strong>Perfil óptimo del catálogo:</strong> ${PROFILE_TYPES[best.tipo].nombre} ${best.entry.label} ` +
-        `(${fmt(best.res.pesoPropio, 2)} kg/m · utilización ${fmt(Math.max(best.res.utilStress, best.res.utilDefl) * 100, 0)} %)` +
-        (mismo ? " — es el seleccionado." : ` <button id="btn-apply">Aplicar</button>`);
-      const btn = $("btn-apply");
-      if (btn) btn.addEventListener("click", () => {
-        els.tipo.value = best.tipo;
-        populateDims(best.tipo, false);
-        els.dims.value = String(CATALOG[best.tipo].indexOf(best.entry));
-        renderCustomDims(best.tipo);
-        recalc();
+        `<strong>Perfil óptimo del catálogo</strong> (mismo perfil en todos los tramos): ` +
+        `${PROFILE_TYPES[best.tipo].nombre} ${best.entry.label} ` +
+        `(${fmt(best.res.pesoTotal, 2)} kg · utilización ${fmt(Math.max(best.res.utilStress, best.res.utilDefl, best.res.utilPandeo) * 100, 0)} %)` +
+        ` <button id="btn-apply">Aplicar</button>`;
+      $("btn-apply").addEventListener("click", () => {
+        const idx = CATALOG[best.tipo].indexOf(best.entry);
+        state.segments.forEach(s => { s.tipo = best.tipo; s.dimsIdx = idx; s.custom = null; });
+        renderSegments(); recalc();
       });
     } else {
       els.suggestion.innerHTML =
         "<strong>Ningún perfil del catálogo cumple</strong> con estos criterios. " +
-        "Reduce la longitud o el peso, relaja el límite de flecha o usa un perfil personalizado mayor.";
+        "Reduce luces o pesos, añade un apoyo al suelo, relaja el límite de flecha o usa un perfil personalizado mayor.";
     }
   }
 
   function recalc() {
     const inputs = getInputs();
-    const criteria = getCriteria(inputs.L);
+    const criteria = getCriteria();
     const errs = validate(inputs, criteria);
     els.error.classList.toggle("visible", errs.length > 0);
     if (errs.length > 0) {
@@ -796,23 +1944,118 @@ if (typeof document !== "undefined") {
     }
     const model = buildModel(inputs);
     const res = analyze(model, criteria);
-    const bolts = anchorForces(res, inputs.anclaje);
-    const best = suggestProfile(inputs, criteria);
+    const bolts = res.mecanismo ? null : anchorForces(res, inputs.anclaje);
+    const best = res.mecanismo ? null : suggestProfile(inputs, criteria);
     renderResults(inputs, res, bolts, best);
-    Sketch.render(els.svg, inputs, model, res, bolts);
+    // La vista 2D muestra siempre la posición más desfavorable (brazo
+    // totalmente extendido, sin plegado en planta): es la peor para flexión.
+    const plano = inputs.segments.some(s => s.planAngle);
+    const inputs2d = plano
+      ? { ...inputs, segments: inputs.segments.map(s => ({ ...s, planAngle: 0 })) }
+      : inputs;
+    const model2d = plano ? buildModel(inputs2d) : model;
+    const res2d = plano ? analyze(model2d, criteria) : res;
+    Sketch.render(els.svg, inputs2d, model2d, res2d, plano);
+    if (state.view3d) Sketch3D.update(inputs, model, res);
   }
 
-  // Inicialización
-  populateTipos();
-  populateMateriales();
-  els.tipo.value = "rect";
-  populateDims("rect", false);
-  els.dims.value = "1"; // 40×20×2 por defecto
+  // Conmutador de vista 2D / 3D (Three.js se carga del CDN al activar 3D)
+  async function setView3D(want3d) {
+    if (want3d && !Sketch3D.inited) {
+      els.view3d.textContent = "3D…";
+      try {
+        await ensureThree();
+      } catch {
+        els.view3d.textContent = "3D";
+        els.threeError.hidden = false;
+        return;
+      }
+      els.view3d.textContent = "3D";
+      els.c3d.hidden = false; // antes de init para que tenga anchura
+      Sketch3D.init(els.c3d);
+    }
+    state.view3d = want3d;
+    if (!want3d) { els.foldOverlay.hidden = true; Sketch3D.selectedSeg = null; }
+    els.threeError.hidden = true;
+    els.svg.style.display = want3d ? "none" : "block";
+    els.c3d.hidden = !want3d;
+    els.hint3d.hidden = !want3d;
+    els.view2d.classList.toggle("active", !want3d);
+    els.view3d.classList.toggle("active", want3d);
+    if (want3d) recalc();
+  }
+  els.view2d.addEventListener("click", () => setView3D(false));
+  els.view3d.addEventListener("click", () => setView3D(true));
 
-  els.tipo.addEventListener("change", () => { populateDims(els.tipo.value, false); recalc(); });
-  els.dims.addEventListener("change", () => { renderCustomDims(els.tipo.value); recalc(); });
-  for (const el of [els.pesoTV, els.pesoSoporte, els.L, els.material, els.fs,
-                    els.flechaLim, els.flechaAbs, els.sepPernos, els.nPernos]) {
+  /** Cambia el plegado de un tramo y sincroniza tarjeta + overlay 3D. */
+  function setPlanAngle(i, v) {
+    state.segments[i].planAngle = v;
+    const card = $(`seg${i}-plan`);
+    if (card) { card.value = v; $(`seg${i}-plan-val`).textContent = `${v}°`; }
+    if (!els.foldOverlay.hidden && parseInt(els.foldSeg.dataset.i, 10) === i) {
+      els.foldRange.value = v;
+      els.foldVal.textContent = `${v}°`;
+    }
+    recalc();
+  }
+
+  // Clic en un pivote de la vista 3D → slider superpuesto para ese tramo
+  Sketch3D.onPivotClick = (i) => {
+    if (i == null) {
+      els.foldOverlay.hidden = true;
+      Sketch3D.selectedSeg = null;
+    } else {
+      Sketch3D.selectedSeg = i;
+      els.foldSeg.textContent = i + 1;
+      els.foldSeg.dataset.i = i;
+      els.foldRange.value = state.segments[i].planAngle || 0;
+      els.foldVal.textContent = `${state.segments[i].planAngle || 0}°`;
+      els.foldOverlay.hidden = false;
+    }
+    recalc();
+  };
+  els.foldRange.addEventListener("input", () => {
+    setPlanAngle(parseInt(els.foldSeg.dataset.i, 10), parseFloat(els.foldRange.value) || 0);
+  });
+
+  // Inicialización
+  els.material.innerHTML = Object.entries(MATERIALS)
+    .map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join("");
+  els.material.value = "S235";
+  els.support.innerHTML = Object.entries(SUPPORTS)
+    .map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join("");
+  els.support.value = "ninguno";
+  els.muro.innerHTML = Object.entries(WALLS)
+    .map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join("");
+  els.muro.value = "macizo";
+  els.wallJoint.innerHTML = Object.entries(JOINTS)
+    .map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join("");
+  els.wallJoint.value = "empotramiento";
+  els.wallJoint.addEventListener("change", () => {
+    if (els.wallJoint.value !== "pivote") state.segments[0].planAngle = 0;
+    renderSegments(); recalc();
+  });
+
+  renderLegend();
+  renderSegments();
+  els.addSeg.addEventListener("click", () => {
+    if (state.segments.length >= MAX_SEGMENTS) return;
+    const last = state.segments[state.segments.length - 1];
+    state.segments.push({
+      L: 200, angle: 0, planAngle: 0, tipo: last.tipo,
+      dimsIdx: last.dimsIdx === "custom" ? 0 : last.dimsIdx,
+      custom: null, joint: "pivote",
+    });
+    state.tvSeg = state.segments.length - 1;
+    renderSegments(); recalc();
+  });
+  els.tvSeg.addEventListener("change", () => {
+    state.tvSeg = parseInt(els.tvSeg.value, 10);
+    recalc();
+  });
+  for (const el of [els.pesoTV, els.pesoSoporte, els.material, els.support, els.fs,
+                    els.flechaLim, els.flechaAbs, els.sepPernos, els.nPernos, els.muro,
+                    els.filas]) {
     el.addEventListener("input", recalc);
     el.addEventListener("change", recalc);
   }
@@ -821,7 +2064,10 @@ if (typeof document !== "undefined") {
 
 /* Exportación para pruebas en Node (no afecta al navegador). */
 if (typeof module !== "undefined") {
-  module.exports = { MATERIALS, PROFILE_TYPES, CATALOG, buildModel, analyze, anchorForces, suggestProfile };
+  module.exports = {
+    MATERIALS, JOINTS, SUPPORTS, WALLS, PROFILE_TYPES, CATALOG, SUB,
+    buildModel, analyze, anchorForces, recommendAnchor, suggestProfile, sectionSVG, sectionCaption,
+  };
 }
 </script>
 </body>
