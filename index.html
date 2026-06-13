@@ -436,14 +436,14 @@
           <label for="in-flecha-lim">Límite de flecha</label>
           <select id="in-flecha-lim">
             <option value="150">L/150</option>
-            <option value="200" selected>L/200</option>
+            <option value="200">L/200</option>
             <option value="250">L/250</option>
             <option value="300">L/300</option>
-            <option value="abs">Absoluto (mm)</option>
+            <option value="abs" selected>Absoluto (mm)</option>
           </select>
         </div>
       </div>
-      <div class="field" id="field-flecha-abs" hidden>
+      <div class="field" id="field-flecha-abs">
         <label for="in-flecha-abs">Flecha máxima absoluta (mm)</label>
         <input type="number" id="in-flecha-abs" value="3" min="0.1" step="0.5">
       </div>
@@ -464,7 +464,7 @@
     <div id="sketch-3d" hidden>
       <div id="fold-overlay" hidden>
         <label for="fold-range">Giro en planta — tramo <span id="fold-seg">1</span>: <b id="fold-val">0°</b></label>
-        <input type="range" id="fold-range" min="-170" max="170" step="5" value="0">
+        <input type="range" id="fold-range" min="-90" max="90" step="5" value="0">
       </div>
     </div>
     <div id="three-error" hidden>
@@ -1197,25 +1197,30 @@ const Sketch = {
     return s;
   },
 
-  render(svg, inputs, model, res) {
+  render(svg, inputs, model, res, extendido) {
     const nodes = model.nodes;
     const xmax = Math.max(...nodes.map(n => n.x), 100);
     const ymax = Math.max(...nodes.map(n => n.y), 0);
     const ymin = Math.min(...nodes.map(n => n.y), 0);
-    const PADW = 150, W = 560, H = 280, TOP = 80;
-    const scale = Math.min(W / xmax, H / Math.max(ymax - ymin, 60));
-    const mx = (x) => PADW + x * scale;
-    const my = (y) => TOP + (ymax - y) * scale;
+    // Encuadre: pared anclada a la izquierda, estructura centrada en vertical
+    // dentro del área útil (deja sitio para la TV de perfil y la deformada).
+    const VW = 800, VH = 460;
+    const mL = 112, mR = 128, mT = 46, mB = 70;
+    const drawW = VW - mL - mR, drawH = VH - mT - mB;
+    const scale = Math.min(drawW / Math.max(xmax, 1), drawH / Math.max(ymax - ymin, 60));
+    const cyModel = (ymin + ymax) / 2, drawCY = mT + drawH / 2;
+    const mx = (x) => mL + x * scale;
+    const my = (y) => drawCY - (y - cyModel) * scale;
     const armColor = res.mecanismo ? "#6a1b9a" : res.apto ? "var(--c-ok)" : "var(--c-bad)";
 
     let s = "";
 
     // Pared + placa de anclaje con pernos
     const wallX = mx(0);
-    s += `<rect x="${wallX - 60}" y="30" width="60" height="400" fill="#eceff1"/>`;
-    s += this.wallHatch(wallX, 30, 430);
+    s += `<rect x="${wallX - 60}" y="0" width="60" height="${VH}" fill="#eceff1"/>`;
+    s += this.wallHatch(wallX, 6, VH - 6);
     const nf = inputs.anclaje.nf || 2;
-    const sPx = Math.min(inputs.anclaje.s * scale, 160 / (nf - 1));
+    const sPx = Math.min(inputs.anclaje.s * scale, 150 / (nf - 1));
     const groupH = sPx * (nf - 1);
     const plateH = groupH + 44;
     s += `<rect x="${wallX}" y="${my(0) - plateH / 2}" width="10" height="${plateH}" rx="2" fill="#90a4ae" stroke="#546e7a"/>`;
@@ -1246,35 +1251,37 @@ const Sketch = {
       s += this.supportSymbol(model.support, mx(endNode.x), my(endNode.y));
     }
 
-    // Deformada exagerada
+    // Deformada exagerada (más visible)
     if (!res.mecanismo) {
       const maxU = Math.max(...res.samples.map(p => Math.hypot(p.ux, p.uy)), 1e-9);
-      const exag = 45 / (maxU * scale);
+      const exag = 70 / (maxU * scale);
       let path = "";
       res.samples.forEach((p, i) => {
         path += `${i ? "L" : "M"} ${mx(p.x + p.ux * exag).toFixed(1)} ${my(p.y + p.uy * exag).toFixed(1)} `;
       });
-      s += `<path d="${path}" fill="none" stroke="#7b1fa2" stroke-width="2" stroke-dasharray="6 4" opacity="0.85"/>`;
-      s += `<text x="${wallX + 18}" y="445" font-size="12" fill="#7b1fa2">deformada ×${Math.round(exag)} (exagerada)</text>`;
+      s += `<path d="${path}" fill="none" stroke="#7b1fa2" stroke-width="2.5" stroke-dasharray="7 4" opacity="0.9"/>`;
+      s += `<text x="${wallX + 18}" y="${VH - 8}" font-size="12" fill="#7b1fa2">deformada ×${Math.round(exag)} (exagerada)</text>`;
     } else {
-      s += `<text x="${(wallX + mx(xmax)) / 2}" y="52" font-size="14" font-weight="bold" fill="#6a1b9a" text-anchor="middle">⚠ MECANISMO INESTABLE</text>`;
-      s += `<text x="${(wallX + mx(xmax)) / 2}" y="68" font-size="12" fill="#6a1b9a" text-anchor="middle">las conexiones/apoyos no equilibran la estructura</text>`;
+      s += `<text x="${(wallX + mx(xmax)) / 2}" y="26" font-size="14" font-weight="bold" fill="#6a1b9a" text-anchor="middle">⚠ MECANISMO INESTABLE</text>`;
+      s += `<text x="${(wallX + mx(xmax)) / 2}" y="42" font-size="12" fill="#6a1b9a" text-anchor="middle">las conexiones/apoyos no equilibran la estructura</text>`;
     }
 
-    // TV anclada por el centro de la pantalla en su nudo + flecha de carga
+    // TV DE PERFIL (vista lateral): se ve el canto del panel, pantalla hacia
+    // la habitación (derecha). Anclada por el centro del panel en su nudo.
     const tv = nodes[model.tvNode];
     const tx = mx(tv.x), ty = my(tv.y);
-    const tvW = 90, tvH = 54;
-    s += `<rect x="${tx - tvW / 2}" y="${ty - tvH / 2}" width="${tvW}" height="${tvH}" rx="4" fill="#263238"/>`;
-    s += `<rect x="${tx - tvW / 2 + 4}" y="${ty - tvH / 2 + 4}" width="${tvW - 8}" height="${tvH - 8}" rx="2" fill="#4fc3f7" opacity="0.7"/>`;
-    s += `<circle cx="${tx}" cy="${ty}" r="3" fill="#fff" stroke="#263238"/>`;
-    const yArr = ty + tvH / 2 + 6;
-    s += `<line x1="${tx}" y1="${yArr}" x2="${tx}" y2="${yArr + 32}" stroke="var(--c-bad)" stroke-width="3"/>`;
-    s += `<polygon points="${tx - 6},${yArr + 30} ${tx + 6},${yArr + 30} ${tx},${yArr + 42}" fill="var(--c-bad)"/>`;
-    s += `<text x="${tx + 12}" y="${yArr + 28}" font-size="13" fill="var(--c-bad)">P = ${(inputs.pesoTV + inputs.pesoSoporte).toFixed(1)} kg</text>`;
+    const tvHalf = 38, depth = 11;
+    s += `<line x1="${tx}" y1="${ty}" x2="${tx + 10}" y2="${ty}" stroke="#37474f" stroke-width="3"/>`; // soporte
+    s += `<rect x="${tx + 10}" y="${ty - tvHalf}" width="${depth}" height="${tvHalf * 2}" rx="2" fill="#263238"/>`; // canto del panel
+    s += `<rect x="${tx + 10 + depth}" y="${ty - tvHalf + 3}" width="2.5" height="${tvHalf * 2 - 6}" fill="#4fc3f7"/>`; // pantalla (cara a la habitación)
+    s += `<circle cx="${tx}" cy="${ty}" r="3" fill="#fff" stroke="#263238"/>`; // nudo = centro del panel
+    const xCG = tx + 10 + depth / 2, yArr = ty + tvHalf + 6;
+    s += `<line x1="${xCG}" y1="${yArr}" x2="${xCG}" y2="${yArr + 30}" stroke="var(--c-bad)" stroke-width="3"/>`;
+    s += `<polygon points="${xCG - 6},${yArr + 28} ${xCG + 6},${yArr + 28} ${xCG},${yArr + 40}" fill="var(--c-bad)"/>`;
+    s += `<text x="${xCG + 10}" y="${yArr + 26}" font-size="13" fill="var(--c-bad)">P = ${(inputs.pesoTV + inputs.pesoSoporte).toFixed(1)} kg</text>`;
 
-    if (model.segs.some(sg => sg.planAngle)) {
-      s += `<text x="${wallX + 18}" y="425" font-size="12" fill="#ef6c00">brazo plegado en planta — proyección lateral; usa la vista 3D para la geometría real</text>`;
+    if (extendido) {
+      s += `<text x="${wallX + 18}" y="22" font-size="12" fill="#ef6c00">vista en máxima extensión (posición más desfavorable)</text>`;
     }
 
     svg.innerHTML = s;
@@ -1318,10 +1325,11 @@ const Sketch3D = {
     this.group = new T.Group();
     this.scene.add(this.group);
     this.controls = new T.OrbitControls(this.camera, this.renderer.domElement);
-    // Mantener la cámara delante de la pared y a distancia razonable
-    this.controls.minAzimuthAngle = -1.25;
-    this.controls.maxAzimuthAngle = 1.25;
-    this.controls.maxPolarAngle = 1.52;
+    // Órbita amplia (evita solo quedar completamente detrás de la pared)
+    this.controls.minAzimuthAngle = -2.6;
+    this.controls.maxAzimuthAngle = 2.6;
+    this.controls.minPolarAngle = 0.1;
+    this.controls.maxPolarAngle = 3.0;
     this.controls.addEventListener("change", () => this.renderer.render(this.scene, this.camera));
     // Picking de pivotes: clic (sin arrastre) sobre el cilindro azul
     this.raycaster = new T.Raycaster();
@@ -1406,12 +1414,15 @@ const Sketch3D = {
     const matSteel = new T.MeshStandardMaterial({ color: 0x90a4ae, metalness: 0.6, roughness: 0.4 });
     const nodes = model.nodes;
     const last = nodes[nodes.length - 1];
-    const size = Math.max(...nodes.map(n => Math.hypot(n.x, n.y, n.z)), 400);
+    // Tamaño estable: basado en la longitud total desarrollada (no cambia al
+    // plegar las articulaciones), de modo que la pared no se redimensiona.
+    const extent = model.segs.reduce((a, sg) => a + sg.L, 0);
+    const size = extent;
 
-    // Pared (plano x=0) y placa con pernos
-    const wall = new T.Mesh(new T.BoxGeometry(20, size * 1.6, size * 1.6),
-      new T.MeshStandardMaterial({ color: 0xeceff1, roughness: 0.9 }));
-    wall.position.set(-10, 0, 0);
+    // Pared (plano x=0) translúcida y de tamaño fijo
+    const wall = new T.Mesh(new T.BoxGeometry(20, extent * 1.7, extent * 1.7),
+      new T.MeshStandardMaterial({ color: 0xeceff1, roughness: 0.9, transparent: true, opacity: 0.45 }));
+    wall.position.set(-11, 0, 0);
     this.group.add(wall);
     const nf = inputs.anclaje.nf || 2, nb = inputs.anclaje.n, sB = inputs.anclaje.s;
     const plate = new T.Mesh(new T.BoxGeometry(10, (nf - 1) * sB + 60, (nb - 1) * sB + 60), matSteel);
@@ -1492,19 +1503,19 @@ const Sketch3D = {
     tvBody.position.set(-17, 0, 0); // cuerpo detrás del plano de pantalla
     tvg.add(tvBody);
     const tvScreen = new T.Mesh(new T.BoxGeometry(4, 224, 410),
-      new T.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x1a4f63, roughness: 0.3, transparent: true, opacity: 0.8 }));
+      new T.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x1a4f63, roughness: 0.3, transparent: true, opacity: 0.6 }));
     tvg.add(tvScreen); // pantalla centrada en el nudo
     tvg.position.set(tv.x, tv.y, tv.z);
     tvg.rotation.y = yaw;
     this.group.add(tvg);
 
-    // Deformada exagerada
+    // Deformada exagerada (más marcada)
     if (!res.mecanismo) {
       const maxU = Math.max(...res.samples.map(p => Math.hypot(p.ux, p.uy, p.uz)), 1e-9);
-      const exag = 0.06 * size / maxU;
+      const exag = 0.14 * size / maxU;
       const pts = res.samples.map(p => new T.Vector3(p.x + p.ux * exag, p.y + p.uy * exag, p.z + p.uz * exag));
       const line = new T.Line(new T.BufferGeometry().setFromPoints(pts),
-        new T.LineDashedMaterial({ color: 0x7b1fa2, dashSize: 25, gapSize: 15 }));
+        new T.LineDashedMaterial({ color: 0x7b1fa2, dashSize: 22, gapSize: 12, linewidth: 2 }));
       line.computeLineDistances();
       this.group.add(line);
     }
@@ -1656,7 +1667,7 @@ if (typeof document !== "undefined") {
             ${(i === 0 ? els.wallJoint.value : s.joint) !== "pivote" ? "" : `
             <div class="field plan-slider">
               <label for="seg${i}-plan">Giro en planta (pivote) <span id="seg${i}-plan-val">${s.planAngle || 0}°</span></label>
-              <input type="range" id="seg${i}-plan" min="-170" max="170" step="5" value="${s.planAngle || 0}">
+              <input type="range" id="seg${i}-plan" min="-90" max="90" step="5" value="${s.planAngle || 0}">
             </div>`}
             <div class="field">
               <label for="seg${i}-tipo">Tipo de perfil</label>
@@ -1798,7 +1809,7 @@ if (typeof document !== "undefined") {
     inputs.segments.forEach((s, i) => {
       if (!(s.L > 0)) errs.push(`Tramo ${i + 1}: la longitud debe ser positiva.`);
       if (!(s.angle >= -180 && s.angle <= 180)) errs.push(`Tramo ${i + 1}: el ángulo debe estar entre −180° y 180°.`);
-      if (!(s.planAngle >= -170 && s.planAngle <= 170)) errs.push(`Tramo ${i + 1}: el giro en planta debe estar entre −170° y 170°.`);
+      if (!(s.planAngle >= -90 && s.planAngle <= 90)) errs.push(`Tramo ${i + 1}: el giro en planta debe estar entre −90° y 90°.`);
       for (const [k, v] of Object.entries(s.dims)) {
         if (!(v > 0)) errs.push(`Tramo ${i + 1}: la dimensión "${k}" debe ser positiva.`);
       }
@@ -1935,7 +1946,15 @@ if (typeof document !== "undefined") {
     const bolts = res.mecanismo ? null : anchorForces(res, inputs.anclaje);
     const best = res.mecanismo ? null : suggestProfile(inputs, criteria);
     renderResults(inputs, res, bolts, best);
-    Sketch.render(els.svg, inputs, model, res);
+    // La vista 2D muestra siempre la posición más desfavorable (brazo
+    // totalmente extendido, sin plegado en planta): es la peor para flexión.
+    const plano = inputs.segments.some(s => s.planAngle);
+    const inputs2d = plano
+      ? { ...inputs, segments: inputs.segments.map(s => ({ ...s, planAngle: 0 })) }
+      : inputs;
+    const model2d = plano ? buildModel(inputs2d) : model;
+    const res2d = plano ? analyze(model2d, criteria) : res;
+    Sketch.render(els.svg, inputs2d, model2d, res2d, plano);
     if (state.view3d) Sketch3D.update(inputs, model, res);
   }
 
