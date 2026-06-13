@@ -6,7 +6,7 @@ Web app de un solo archivo (`index.html`, sin dependencias ni build) para dimens
 
 ## Qué calcula
 
-Modela la estructura como **pórtico espacial 3D** (método matricial de rigidez, vigas-columna de 12 GDL): 1–3 tramos con longitud, perfil, ángulo en el plano vertical y giro en planta en los pivotes (brazo plegado). La tensión se comprueba en von Mises incluyendo el axil, la flexión en ambos ejes y la **torsión** que aparece al plegar el brazo; en tramos comprimidos se añade pandeo de Euler. Incluye **vista 3D rotable** (Three.js desde CDN, carga perezosa; la vista 2D funciona offline) con los perfiles extruidos con su sección real.
+Modela la estructura como **pórtico espacial 3D** (método matricial de rigidez, vigas-columna de 12 GDL): 1–6 tramos con longitud, perfil, ángulo en el plano vertical y giro en planta en los pivotes (brazo plegado). La tensión se comprueba en von Mises incluyendo el axil, la flexión en ambos ejes y la **torsión** que aparece al plegar el brazo; en tramos comprimidos se añade pandeo de Euler. Incluye **vista 3D rotable** (Three.js desde CDN, carga perezosa; la vista 2D funciona offline) con los perfiles extruidos con su sección real.
 
 **Conexiones entre tramos**: empotramiento rígido, pivote de eje vertical (codo típico de brazo de TV, rígido frente a cargas verticales), bisagra de eje horizontal y rótula esférica — estas dos últimas convierten el voladizo en un mecanismo y la app lo señala como inestable. Cada tramo muestra una **vista previa SVG de la sección** del perfil con sus dimensiones.
 
