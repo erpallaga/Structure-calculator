@@ -1331,16 +1331,19 @@ const Sketch3D = {
     if (this.inited) return;
     const T = window.THREE;
     this.scene = new T.Scene();
-    this.scene.background = new T.Color(0xdde6ed);
+    this.scene.background = new T.Color(0xf3f6fa); // fondo claro, neutro
     this.camera = new T.PerspectiveCamera(45, container.clientWidth / 440, 1, 50000);
     this.renderer = new T.WebGLRenderer({ antialias: true });
     this.renderer.setSize(container.clientWidth, 440);
     this.renderer.setPixelRatio(window.devicePixelRatio || 1);
     container.appendChild(this.renderer.domElement);
-    this.scene.add(new T.AmbientLight(0xffffff, 0.65));
-    const dl = new T.DirectionalLight(0xffffff, 0.7);
+    this.scene.add(new T.AmbientLight(0xffffff, 0.55));
+    const dl = new T.DirectionalLight(0xffffff, 0.9);
     dl.position.set(1500, 2500, 2000);
     this.scene.add(dl);
+    const fill = new T.DirectionalLight(0xcfe0f0, 0.35); // relleno frío desde el lado opuesto
+    fill.position.set(-1200, 800, -1500);
+    this.scene.add(fill);
     this.group = new T.Group();
     this.scene.add(this.group);
     this.controls = new T.OrbitControls(this.camera, this.renderer.domElement);
@@ -1438,11 +1441,17 @@ const Sketch3D = {
     const extent = model.segs.reduce((a, sg) => a + sg.L, 0);
     const size = extent;
 
-    // Pared (plano x=0) translúcida y de tamaño fijo
-    const wall = new T.Mesh(new T.BoxGeometry(20, extent * 1.7, extent * 1.7),
-      new T.MeshStandardMaterial({ color: 0xeceff1, roughness: 0.9, transparent: true, opacity: 0.45 }));
+    // Pared (plano x=0) translúcida, color distinto del fondo, con borde marcado
+    const wallSide = extent * 1.7;
+    const wall = new T.Mesh(new T.BoxGeometry(20, wallSide, wallSide),
+      new T.MeshStandardMaterial({ color: 0x6f8aa3, roughness: 0.85, transparent: true, opacity: 0.4 }));
     wall.position.set(-11, 0, 0);
     this.group.add(wall);
+    const wallEdges = new T.LineSegments(
+      new T.EdgesGeometry(new T.BoxGeometry(20, wallSide, wallSide)),
+      new T.LineBasicMaterial({ color: 0x3d5366 }));
+    wallEdges.position.copy(wall.position);
+    this.group.add(wallEdges);
     const nf = inputs.anclaje.nf || 2, nb = inputs.anclaje.n, sB = inputs.anclaje.s;
     const plate = new T.Mesh(new T.BoxGeometry(10, (nf - 1) * sB + 60, (nb - 1) * sB + 60), matSteel);
     plate.position.set(5, 0, 0);
@@ -1455,12 +1464,16 @@ const Sketch3D = {
         this.group.add(bolt);
       }
 
-    // Suelo si hay apoyo
+    // Suelo si hay apoyo (tono cálido, contrasta con la pared fría) + rejilla
     if (model.support !== "ninguno") {
-      const floor = new T.Mesh(new T.BoxGeometry(size * 1.8, 12, size * 1.8),
-        new T.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.9 }));
-      floor.position.set(size * 0.6, last.y - 6 - 14, 0);
+      const floorTop = last.y - 14, floorSide = size * 1.9;
+      const floor = new T.Mesh(new T.BoxGeometry(floorSide, 12, floorSide),
+        new T.MeshStandardMaterial({ color: 0xc7ad8a, roughness: 0.95 }));
+      floor.position.set(size * 0.6, floorTop - 6, 0);
       this.group.add(floor);
+      const grid = new T.GridHelper(floorSide, 16, 0x8a7355, 0xa68f6f);
+      grid.position.set(size * 0.6, floorTop + 0.5, 0);
+      this.group.add(grid);
       const sup = model.support === "deslizante"
         ? new T.Mesh(new T.SphereGeometry(12, 16, 12), matSteel)
         : new T.Mesh(new T.ConeGeometry(14, 24, 4), matSteel);
@@ -1509,21 +1522,28 @@ const Sketch3D = {
       }
     });
 
-    // TV anclada por el centro de la pantalla (intersección de diagonales) en
-    // su nudo, orientada según el rumbo del tramo que la soporta: al plegar
-    // ese tramo, la TV gira con él.
+    // TV anclada por su PARTE TRASERA al nudo (donde el brazo sujeta el VESA);
+    // el cuerpo y la pantalla salen hacia la habitación. Orientada según el
+    // rumbo del tramo que la soporta: al plegar ese tramo, la TV gira con él.
     const tv = nodes[model.tvNode];
     const tvDir = model.elements[(model.tvSeg + 1) * SUB - 1].dir;
     const horiz = Math.hypot(tvDir[0], tvDir[2]);
     const yaw = horiz > 1e-6 ? -Math.atan2(tvDir[2], tvDir[0]) : 0;
     const tvg = new T.Group();
-    const tvBody = new T.Mesh(new T.BoxGeometry(30, 250, 440),
+    const tvDepth = 46;
+    const tvBody = new T.Mesh(new T.BoxGeometry(tvDepth, 250, 440),
       new T.MeshStandardMaterial({ color: 0x263238, roughness: 0.6 }));
-    tvBody.position.set(-17, 0, 0); // cuerpo detrás del plano de pantalla
+    tvBody.position.set(tvDepth / 2, 0, 0); // trasera en el nudo (x=0), sale hacia +x
     tvg.add(tvBody);
     const tvScreen = new T.Mesh(new T.BoxGeometry(4, 224, 410),
-      new T.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x1a4f63, roughness: 0.3, transparent: true, opacity: 0.6 }));
-    tvg.add(tvScreen); // pantalla centrada en el nudo
+      new T.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x1a4f63, roughness: 0.3, transparent: true, opacity: 0.62 }));
+    tvScreen.position.set(tvDepth, 0, 0); // pantalla en la cara frontal, hacia la habitación
+    tvg.add(tvScreen);
+    // pequeña placa de anclaje VESA en la trasera, sobre el nudo
+    const vesa = new T.Mesh(new T.BoxGeometry(6, 90, 90),
+      new T.MeshStandardMaterial({ color: 0x455a64, metalness: 0.5, roughness: 0.5 }));
+    vesa.position.set(3, 0, 0);
+    tvg.add(vesa);
     tvg.position.set(tv.x, tv.y, tv.z);
     tvg.rotation.y = yaw;
     this.group.add(tvg);
