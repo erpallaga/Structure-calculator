@@ -876,17 +876,35 @@ function kGlobal(e) {
   return kg;
 }
 
-/** Resuelve A·x=b por eliminación gaussiana con pivoteo. null si singular. */
+/**
+ * Resuelve A·x=b (A simétrica definida positiva tras aplicar apoyos).
+ * Devuelve null solo si A es realmente singular (mecanismo).
+ *
+ * Antes de eliminar se aplica un escalado diagonal simétrico (D·A·D con
+ * D=diag(1/√Aᵢᵢ)): así la rigidez axial (EA/L) y la de flexión (EI/L³),
+ * que difieren en varios órdenes de magnitud en tramos largos, quedan
+ * equilibradas y la detección de singularidad no descarta por error
+ * pivotes de flexión legítimos (falso «mecanismo» con brazos muy largos).
+ */
 function solve(Am, b) {
   const n = b.length;
-  const A = Am.map(r => Float64Array.from(r));
-  const x = Float64Array.from(b);
-  let scale = 0;
-  for (let i = 0; i < n; i++) scale = Math.max(scale, Math.abs(A[i][i]));
+  const d = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const aii = Am[i][i];
+    d[i] = aii > 0 ? 1 / Math.sqrt(aii) : 1; // SPD ⇒ diagonal > 0
+  }
+  const A = Am.map((row, i) => {
+    const r = new Float64Array(n);
+    for (let j = 0; j < n; j++) r[j] = row[j] * d[i] * d[j];
+    return r;
+  });
+  const x = Float64Array.from(b, (v, i) => v * d[i]);
+  // Tras el escalado la diagonal es ~1, así que el umbral es absoluto.
+  const TOL = 1e-10;
   for (let col = 0; col < n; col++) {
     let p = col;
     for (let r = col + 1; r < n; r++) if (Math.abs(A[r][col]) > Math.abs(A[p][col])) p = r;
-    if (Math.abs(A[p][col]) < 1e-9 * scale) return null; // mecanismo
+    if (Math.abs(A[p][col]) < TOL) return null; // mecanismo (modo de cuerpo rígido)
     if (p !== col) { [A[p], A[col]] = [A[col], A[p]]; const t = x[p]; x[p] = x[col]; x[col] = t; }
     for (let r = col + 1; r < n; r++) {
       const f = A[r][col] / A[col][col];
@@ -900,6 +918,7 @@ function solve(Am, b) {
     for (let j = i + 1; j < n; j++) v -= A[i][j] * x[j];
     x[i] = v / A[i][i];
   }
+  for (let i = 0; i < n; i++) x[i] *= d[i]; // deshacer el escalado
   return x;
 }
 
